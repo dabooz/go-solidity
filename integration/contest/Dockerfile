@@ -10,7 +10,7 @@ RUN mkdir /tmp/pkg
 RUN mkdir /tmp/src/repo.hovitos.engineering
 RUN mkdir /tmp/src/repo.hovitos.engineering/MTN
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN
-RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN-research/go-solidity.git
+RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/go-solidity.git
 #WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity
 #RUN git checkout losttx
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity/clients
