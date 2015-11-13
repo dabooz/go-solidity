@@ -1,0 +1,102 @@
+package main 
+
+import (
+    "bytes"
+    "fmt"
+    "repo.hovitos.engineering/MTN/go-solidity/contract_api"
+    "io/ioutil"
+    "net/http"
+    "os"
+)
+
+func main() {
+    fmt.Println("Starting MTN contract bootstrap.")
+
+    if len(os.Args) < 2 {
+        fmt.Printf("Need more than %v parameters.",len(os.Args))
+        os.Exit(1)
+    }
+    owning_acount := os.Args[1]
+
+    skip_etcd := ""
+    if len(os.Args) > 2 {
+        skip_etcd = os.Args[2]
+    }
+
+    fmt.Printf("Using account %v.\n",owning_acount)
+
+    fmt.Println("Deploying directory contract.")
+    dsc := contract_api.SolidityContractFactory("directory")
+    if res,err := dsc.Deploy_contract(owning_acount, ""); err == nil {
+        fmt.Printf("Deployed directory contract:%v at %v.\n",res,dsc.Get_contract_address())
+
+        fmt.Println("Deploying token bank contract.")
+        tbsc := contract_api.SolidityContractFactory("token_bank")
+        if res,err := tbsc.Deploy_contract(owning_acount, ""); err == nil {
+            fmt.Printf("Deployed token_bank contract:%v at %v.\n",res,tbsc.Get_contract_address())
+
+            fmt.Println("Deploying device_registry contract.")
+            drsc := contract_api.SolidityContractFactory("device_registry")
+            if res,err := drsc.Deploy_contract(owning_acount, ""); err == nil {
+                fmt.Printf("Deployed device_registry contract:%v at %v.\n",res,drsc.Get_contract_address())
+
+                // Connect contracts together
+
+                fmt.Println("Adding token bank to directory.")
+                p := make([]interface{},0,10)
+                p = append(p,"token_bank")
+                p = append(p,tbsc.Get_contract_address())
+                _,_ = dsc.Invoke_method("add_entry",p)
+                fmt.Println("Added token bank to directory.")
+
+                fmt.Println("Adding device registry to directory.")
+                p = make([]interface{},0,10)
+                p = append(p,"device_registry")
+                p = append(p,drsc.Get_contract_address())
+                _,err = dsc.Invoke_method("add_entry",p)
+                fmt.Println("Added device registry to directory.")
+
+                fmt.Println("Connecting device registry to token bank.")
+                p = make([]interface{},0,10)
+                p = append(p,tbsc.Get_contract_address())
+                _,err = drsc.Invoke_method("set_bank",p)
+                fmt.Println("Connected device registry to token bank.")
+
+                // Register directory contract in global etcd
+
+                if skip_etcd == "" {
+                    fmt.Printf("Registering directory contract in etcd.\n")
+                    etcd_url := "http://etcd:2379/v2/keys/directory"
+                    post_data := "value="+dsc.Get_contract_address()
+                    req,_ := http.NewRequest("PUT", etcd_url, bytes.NewBuffer([]byte(post_data)))
+                    req.Header.Add("content-type", "application/x-www-form-urlencoded")
+                    client := &http.Client{}
+                    resp,err := client.Do(req)
+                    if err != nil || (resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated) {
+                        fmt.Printf("PUT failed:%v, status %v\n",err,resp.StatusCode)
+                    }
+                    defer resp.Body.Close()
+                    fmt.Printf("Registered directory contract in etcd.\n")
+                } else {
+                    _ = ioutil.WriteFile("directory",[]byte(dsc.Get_contract_address()[2:]),0644)
+                    fmt.Printf("Wrote directory address to file system.\n")
+                }
+
+                fmt.Println("Successfully completed MTN contract bootstrap.")
+
+            } else {
+                fmt.Printf("Error deploying device_registry: %v\n",err)
+                os.Exit(1)
+            }
+
+        } else {
+            fmt.Printf("Error deploying token_bank: %v\n",err)
+            os.Exit(1)
+        }
+
+    } else {
+        fmt.Printf("Error deploying directory: %v\n",err)
+        os.Exit(1)
+    }
+
+}

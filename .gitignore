@@ -1,0 +1,4 @@
+# git ignores for this project
+compose/
+*.tar
+tempssh/

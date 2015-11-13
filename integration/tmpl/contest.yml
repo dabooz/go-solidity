@@ -1,0 +1,4 @@
+contest:
+  image: contest
+  environment:
+   - PASSWD=bob
