@@ -32,54 +32,6 @@ func main() {
     // ---------------------- Start of one time init code ------------------------
     //
 
-    // Check glensung bacon balance
-    
-    pr := BankResponseWith{}
-    err = invoke_rest("GET", "bank?loans=true", nil, pr)
-    if err != nil {
-        fmt.Printf("Error getting bank balance:%v\n",err)
-        os.Exit(1)
-    }
-    bal := pr.Tokens
-    fmt.Printf("Owner bacon balance is:%v\n",bal)
-
-    if bal == 0 {
-        // Get a loan
-        pr := BankPutRequest{}
-        pr.Amount = 1000
-        body,err := json.Marshal(pr)
-        if err != nil {
-            fmt.Printf("Error marshalling loan request:%v\n",err)
-            os.Exit(1)
-        }
-        err = invoke_rest("PUT", "bank", body, nil)
-        if err != nil {
-            fmt.Printf("Error obtaining a loan:%v\n",err)
-            os.Exit(1)
-        }
-
-        // Loop until the loan is granted. The PUT REST API will timeout
-        // after a minute if the transaction doesn't run.
-        start_timer := time.Now()
-        for bal == 0 {
-            delta := time.Now().Sub(start_timer).Seconds()
-            if int(delta) < tx_lost_delay_toleration {
-                time.Sleep(5000*time.Millisecond)
-                pr := BankResponseWith{}
-                err = invoke_rest("GET", "bank?loans=true", nil, pr)
-                if err != nil {
-                    fmt.Printf("Error getting bank balance:%v\n",err)
-                    os.Exit(1)
-                }
-                bal = pr.Tokens
-            } else {
-                fmt.Printf("Loan never came through.\n")
-                os.Exit(1)
-            }
-        }
-        fmt.Printf("Owner bacon balance is:%v\n",bal)
-    }
-
     //
     // ------------------- End of one time initialization ------------------------
 
@@ -90,6 +42,93 @@ func main() {
     first_device := false
     last_device := false
     for !last_device {
+
+        // Check glensung bacon balance
+    
+        lr := BankResponseWith{}
+        err = invoke_rest("GET", "bank?loans=true", nil, lr)
+        if err != nil {
+            fmt.Printf("Error getting bank balance:%v\n",err)
+            os.Exit(1)
+        }
+        bal := lr.Tokens
+        fmt.Printf("Owner bacon balance is:%v\n",bal)
+
+        if bal == 0 {
+            // Get a loan
+            if lr.Loans[0].Balance == 0 {
+                pr := BankPutRequest{}
+                pr.Amount = 1000
+                body,err := json.Marshal(pr)
+                if err != nil {
+                    fmt.Printf("Error marshalling loan request:%v\n",err)
+                    os.Exit(1)
+                }
+                err = invoke_rest("PUT", "bank", body, nil)
+                if err != nil {
+                    fmt.Printf("Error obtaining a loan:%v\n",err)
+                    os.Exit(1)
+                }
+
+                // Loop until the loan is granted. The PUT REST API will timeout
+                // after a minute if the transaction doesn't run.
+                start_timer := time.Now()
+                for bal == 0 {
+                    delta := time.Now().Sub(start_timer).Seconds()
+                    if int(delta) < tx_lost_delay_toleration {
+                        time.Sleep(5000*time.Millisecond)
+                        pr := BankResponseWith{}
+                        err = invoke_rest("GET", "bank?loans=true", nil, pr)
+                        if err != nil {
+                            fmt.Printf("Error getting bank balance:%v\n",err)
+                            os.Exit(1)
+                        }
+                        bal = pr.Tokens
+                    } else {
+                        fmt.Printf("Loan never came through.\n")
+                        os.Exit(1)
+                    }
+                }
+            } else {
+                // Increase the loan
+                pr := BankPostRequest{}
+                pr.Amount = 1000
+                pr.Id = "0000001"
+                pr.Repay = false
+                pr.IncreaseLoan = true
+                body,err := json.Marshal(pr)
+                if err != nil {
+                    fmt.Printf("Error marshalling loan increase request:%v\n",err)
+                    os.Exit(1)
+                }
+                err = invoke_rest("POST", "bank", body, nil)
+                if err != nil {
+                    fmt.Printf("Error increasing a loan:%v\n",err)
+                    os.Exit(1)
+                }
+
+                // Loop until the loan is granted. The POST REST API will timeout
+                // after a minute if the transaction doesn't run.
+                start_timer := time.Now()
+                for bal == 0 {
+                    delta := time.Now().Sub(start_timer).Seconds()
+                    if int(delta) < tx_lost_delay_toleration {
+                        time.Sleep(5000*time.Millisecond)
+                        pr := BankResponseWith{}
+                        err = invoke_rest("GET", "bank?loans=true", nil, pr)
+                        if err != nil {
+                            fmt.Printf("Error getting bank balance:%v\n",err)
+                            os.Exit(1)
+                        }
+                        bal = pr.Tokens
+                    } else {
+                        fmt.Printf("Loan never came through.\n")
+                        os.Exit(1)
+                    }
+                } // increase loan
+            } // bacon bal == 0
+            fmt.Printf("Owner bacon balance is:%v\n",bal)
+        }
 
         pr := RegistryResponse{}
         err = invoke_rest("GET", "registry", nil, pr)
@@ -123,10 +162,11 @@ func main() {
                 fmt.Printf("Device is available. Tell it to run a container.\n")
 
                 // Try to enter agreement with the device
+                agreement_id := generate_agreement_id(32)
                 dp := DevicePutRequest{}
                 dp.Amount = rand.Intn(4)+1
                 dp.Address = device.Address
-                dp.AgreementId = "abcdefghijklmnopqrstuvwxyz"
+                dp.AgreementId = agreement_id
                 dp.Whisper = whisper_account
                 body,err := json.Marshal(dp)
                 if err != nil {
@@ -152,9 +192,13 @@ func main() {
                             fmt.Printf("Error getting device info:%v\n",err)
                             os.Exit(1)
                         }
-                        if dr1.Agreement.AgreementId == "abcdefghijklmnopqrstuvwxyz" {
+                        if dr1.Agreement.AgreementId == agreement_id {
                             fmt.Printf("Device has our agreement Id.\n")
                             agreement_set = true
+                        }
+                        if dr1.Agreement.AgreementId != agreement_id && dr1.Agreement.AgreementId != "" {
+                            fmt.Printf("Device has some other agreement id now.\n")
+                            break
                         }
                     } else {
                         fmt.Printf("Agreement was never picked up.\n")
@@ -187,15 +231,18 @@ func main() {
                                 fmt.Printf("Device has cancelled.\n")
                                 cancelled = true
                             }
+                            if dr1.Agreement.AgreementId != "" && dr1.Agreement.AgreementId != agreement_id {
+                                fmt.Printf("Device must have cancelled and entered some other agreement, it is no longer on our agreement_id.\n")
+                                cancelled = true
+                            }
                         } else {
                             fmt.Printf("Timeout waiting for device to decide on agreement.\n")
                             break
                         }
-                    }
+                    } // looping for device acceptance
                     if cancelled {
                         fmt.Printf("Device cancelled proposal.\n")
-                        continue
-                    } else if !agreement_reached && dr1.Agreement.Counterparty != "" {
+                    } else if !agreement_reached && dr1.Agreement.AgreementId == agreement_id && dr1.Agreement.Counterparty != "" {
                         // We will cancel
                         fmt.Printf("Device has neither accepted nor cancelled, we will cancel.\n")
                         cr := DevicePostRequest{}
@@ -213,84 +260,33 @@ func main() {
                             fmt.Printf("Error cancelling agreement:%v\n",err)
                             os.Exit(1)
                         }
-                        continue
                     } else if agreement_reached {
                         // counterparty has accepted, we will now accept
                         fmt.Printf("Device has accepted, now its our turn.\n")
 
-
-
-
-
-
+                        dpr := DevicePostRequest{}
+                        dpr.Action = "proposer_vote"
+                        dpr.Device = device.Address
+                        dpr.Proposer = container_owner
+                        dpr.Counterparty = dr1.Agreement.Counterparty
+                        body,err := json.Marshal(dpr)
+                        if err != nil {
+                            fmt.Printf("Error marshalling accept request:%v\n",err)
+                            os.Exit(1)
+                        }
+                        err = invoke_rest("POST", "device", body, nil)
+                        if err != nil {
+                            fmt.Printf("Error voting to accept agreement:%v\n",err)
+                            os.Exit(1)
+                        }
 
                     } else {
                         fmt.Printf("Device must have cancelled.\n")
-                        continue
                     }
 
                 } // agreement Id was set onto device
             } // device is available
         } // for each device
-
-    //             p := make([]interface{},0,10)
-    //             p = append(p,"whisper1")
-    //             p = append(p,"agreement1")
-    //             p = append(p,(rand.Intn(4))+1)
-    //             if _,err = sc.Invoke_method("new_container",p); err != nil {
-    //                 fmt.Printf("...terminating, could not initiate new container agreement: %v\n",err)
-    //                 os.Exit(1)
-    //             }
-
-    //             fmt.Printf("Waiting for acceptance of proposal.\n")
-    //             var received_codes []uint64
-    //             received_codes,_ = bank.Wait_for_event([]uint64{counterparty_accepted_event_code,escrow_cancelled_event_code}, sc.Get_contract_address())
-    //             fmt.Printf("Received event codes: %v\n",received_codes)
-
-    //             found_cancel := false
-    //             for _,ev := range received_codes {
-    //                 if ev == escrow_cancelled_event_code {
-    //                     found_cancel = true
-    //                     fmt.Printf("Received cancel escrow.\n")
-    //                 }
-    //             }
-
-    //             if found_cancel {
-    //                 fmt.Printf("Try again.\n")
-    //             } else {
-    //                 fmt.Printf("Voting for proposal.\n")
-    //                 var device_owner interface{}
-    //                 if device_owner,_ = sc.Invoke_method("get_owner",nil); err != nil {
-    //                     fmt.Printf("...terminating, could not get_owner on self: %v\n",err)
-    //                     os.Exit(1)
-    //                 }
-    //                 p = make([]interface{},0,10)
-    //                 p = append(p,device_owner.(string))
-    //                 p = append(p,sc.Get_contract_address())
-    //                 p = append(p,true)
-    //                 if _,_ = bank.Invoke_method("proposer_vote",p); err != nil {
-    //                     fmt.Printf("...terminating, could not vote for proposal: %v\n",err)
-    //                     os.Exit(1)
-    //                 }
-
-    //                 fmt.Printf("Waiting for completion of container execution.\n")
-    //                 received_codes,_ = sc.Wait_for_event([]uint64{execution_complete_event_code,container_rejected_event_code},sc.Get_contract_address())
-    //                 fmt.Printf("Received event codes: %v\n",received_codes)
-
-    //                 fmt.Printf("The device is available again.\n")
-    //             }
-    //         } else {
-    //             fmt.Printf("Error, executor is busy.\n")
-                
-    //         }
-    //     }
-    //     // Check glensung bacon balance
-    //     var bal interface{}
-    //     if bal,err = bank.Invoke_method("account_balance",nil); err != nil {
-    //         fmt.Printf("...terminating, could not get token balance: %v\n",err)
-    //         os.Exit(1)
-    //     }
-    //     fmt.Printf("Owner bacon balance is:%v\n",bal)
 
         // short delay
         time.Sleep(5000*time.Millisecond)
@@ -316,6 +312,13 @@ type loan struct {
 }
 
 type BankPutRequest struct {
+    Amount int `json:"amount"`
+}
+
+type BankPostRequest struct {
+    Id string `json:"id"`
+    Repay bool `json:"repay"`
+    IncreaseLoan bool `json:"increaseLoan"`
     Amount int `json:"amount"`
 }
 
@@ -373,3 +376,14 @@ func invoke_rest(method string, url string, body []byte, outstruct interface{}) 
     // fmt.Println("response Headers:", rawresp.Header)
     return err
 }
+
+func generate_agreement_id(n int) string {
+    var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+    b := make([]rune, n)
+    for i := range b {
+        b[i] = letters[rand.Intn(len(letters))]
+    }
+    return string(b)
+}
+
