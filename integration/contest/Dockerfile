@@ -15,7 +15,7 @@ RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/go-solidity.git
 #RUN git checkout losttx
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity/clients
 ENV GOPATH /tmp
-ENV mtn_soliditycontract=1
+# ENV mtn_soliditycontract=1
 # ENV mtn_soliditycontract_txdelay=2
 RUN make
 RUN cp /tmp/bin/device /usr/bin/mtn-device_owner
