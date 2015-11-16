@@ -60,6 +60,10 @@ DIRADDR=$(cat directory)
 #cd /root/marketplace/restapi
 #node app.js &
 
+mtn-gorest $DIRADDR $ETHERBASE >/tmp/restapi.log 2>&1 &
+
+sleep 5
+
 mtn-device_owner $DIRADDR $ETHERBASE >/tmp/device_owner.log 2>&1 &
 
 WHISPER="0x0123456789"
