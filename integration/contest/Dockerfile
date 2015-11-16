@@ -19,8 +19,15 @@ ENV GOPATH /tmp
 # ENV mtn_soliditycontract_txdelay=2
 RUN make
 RUN cp /tmp/bin/device /usr/bin/mtn-device_owner
-RUN cp /tmp/bin/container_provider /usr/bin/mtn-container_provider
+RUN cp /tmp/bin/rest_container_provider /usr/bin/mtn-rest_container_provider
 RUN cp /tmp/bin/bootstrap /usr/bin/mtn-bootstrap
+
+WORKDIR /tmp/src
+RUN go get github.com/gorilla/mux
+RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN-research/marketplace.git
+WORKDIR /tmp/src/marketplace/gorest
+RUN make
+RUN cp /tmp/bin/gorest /usr/bin/mtn-gorest
 
 ENTRYPOINT ["sh", "/root/client.sh"]
 
