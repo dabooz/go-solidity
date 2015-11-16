@@ -27,7 +27,7 @@ func main() {
     fmt.Printf("using whisper account %v\n",whisper_account)
     container_owner := os.Args[2]
     fmt.Printf("using account %v\n",container_owner)
-    tx_lost_delay_toleration,_ := strconv.Atoi(os.Args[2])
+    tx_lost_delay_toleration,_ := strconv.Atoi(os.Args[3])
 
     // ---------------------- Start of one time init code ------------------------
     //
