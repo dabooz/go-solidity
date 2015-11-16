@@ -280,6 +280,12 @@ func main() {
                             os.Exit(1)
                         }
 
+                        // Pick up the whisper messages from the client
+                        if whisper_account != "0" {
+                            fmt.Printf("Handling whisper.\n")
+                        }
+
+
                     } else {
                         fmt.Printf("Device must have cancelled.\n")
                     }

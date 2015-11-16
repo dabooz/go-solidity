@@ -34,7 +34,7 @@ NETWORKID=$((RANDOM * RANDOM))
 ETHERBASE=$(cat accounts)
 
 echo "Starting Ethereum."
-geth-bcn --verbosity 4 --nodiscover --networkid $NETWORKID --minerthreads 1 --mine --rpc --genesis /root/genesis.json >/tmp/geth.log 2>&1 &
+geth-bcn --shh --verbosity 4 --nodiscover --networkid $NETWORKID --minerthreads 1 --mine --rpc --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3 --genesis /root/genesis.json >/tmp/geth.log 2>&1 &
 
 echo "Waiting for miner to mine a block."
 BALANCE=0
@@ -64,11 +64,17 @@ mtn-gorest $DIRADDR $ETHERBASE >/tmp/restapi.log 2>&1 &
 
 sleep 5
 
-mtn-device_owner $DIRADDR $ETHERBASE >/tmp/device_owner.log 2>&1 &
+WHISPERD=$(curl -sL http://localhost:8545 -X POST --data '{"jsonrpc":"2.0","method":"shh_newIdentity","params":[],"id":1}' | jq -r '.result')
 
-WHISPER="0x0123456789"
+echo $WHISPERD
 
-mtn-rest_container_provider $WHISPER $ETHERBASE 30 >/tmp/glensung.log 2>&1 &
+mtn-device_owner $DIRADDR $ETHERBASE $WHISPERD >/tmp/device_owner.log 2>&1 &
+
+WHISPERP=$(curl -sL http://localhost:8545 -X POST --data '{"jsonrpc":"2.0","method":"shh_newIdentity","params":[],"id":1}' | jq -r '.result')
+
+echo $WHISPERP
+
+mtn-rest_container_provider $WHISPERP $ETHERBASE 30 >/tmp/glensung.log 2>&1 &
 
 echo "all done"
 while :

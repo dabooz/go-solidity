@@ -20,6 +20,12 @@ func main() {
     dir_contract := os.Args[1]
     device_owner := os.Args[2]
 
+    whisper_id := ""
+    if len(os.Args) > 3 {
+        whisper_id = os.Args[3]
+    }
+    fmt.Printf("Using whisper id:%v\n",whisper_id)
+
     var new_container_event_code uint64 = 1
     //var execution_complete_event_code uint64 = 2
 
