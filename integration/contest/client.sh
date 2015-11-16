@@ -62,7 +62,9 @@ DIRADDR=$(cat directory)
 
 mtn-device_owner $DIRADDR $ETHERBASE >/tmp/device_owner.log 2>&1 &
 
-mtn-container_provider $DIRADDR $ETHERBASE >/tmp/glensung.log 2>&1 &
+WHISPER="0x0123456789"
+
+mtn-rest_container_provider $WHISPER $ETHERBASE 30 >/tmp/glensung.log 2>&1 &
 
 echo "all done"
 while :
