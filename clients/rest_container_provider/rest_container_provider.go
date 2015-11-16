@@ -46,7 +46,7 @@ func main() {
         // Check glensung bacon balance
     
         lr := BankResponseWith{}
-        err = invoke_rest("GET", "bank?loans=true", nil, lr)
+        err = invoke_rest("GET", "bank?loans=true", nil, &lr)
         if err != nil {
             fmt.Printf("Error getting bank balance:%v\n",err)
             os.Exit(1)
@@ -78,7 +78,7 @@ func main() {
                     if int(delta) < tx_lost_delay_toleration {
                         time.Sleep(5000*time.Millisecond)
                         pr := BankResponseWith{}
-                        err = invoke_rest("GET", "bank?loans=true", nil, pr)
+                        err = invoke_rest("GET", "bank?loans=true", nil, &pr)
                         if err != nil {
                             fmt.Printf("Error getting bank balance:%v\n",err)
                             os.Exit(1)
@@ -115,7 +115,7 @@ func main() {
                     if int(delta) < tx_lost_delay_toleration {
                         time.Sleep(5000*time.Millisecond)
                         pr := BankResponseWith{}
-                        err = invoke_rest("GET", "bank?loans=true", nil, pr)
+                        err = invoke_rest("GET", "bank?loans=true", nil, &pr)
                         if err != nil {
                             fmt.Printf("Error getting bank balance:%v\n",err)
                             os.Exit(1)
@@ -131,7 +131,7 @@ func main() {
         }
 
         pr := RegistryResponse{}
-        err = invoke_rest("GET", "registry", nil, pr)
+        err = invoke_rest("GET", "registry", nil, &pr)
         if err != nil {
             fmt.Printf("Error getting device list from registry:%v\n",err)
             os.Exit(1)
@@ -151,7 +151,7 @@ func main() {
 
             // Try to setup an agreement with this device
             dr := DeviceResponse{}
-            err = invoke_rest("GET", "device?address="+device.Address, nil, dr)
+            err = invoke_rest("GET", "device?address="+device.Address, nil, &dr)
             if err != nil {
                 fmt.Printf("Error getting device info:%v\n",err)
                 os.Exit(1)
@@ -187,7 +187,7 @@ func main() {
                     if int(delta) < tx_lost_delay_toleration {
                         time.Sleep(5000*time.Millisecond)
                         dr1 := DeviceResponse{}
-                        err = invoke_rest("GET", "device?address="+device.Address, nil, dr1)
+                        err = invoke_rest("GET", "device?address="+device.Address, nil, &dr1)
                         if err != nil {
                             fmt.Printf("Error getting device info:%v\n",err)
                             os.Exit(1)
@@ -218,7 +218,7 @@ func main() {
                         delta := time.Now().Sub(start_timer).Seconds()
                         if int(delta) < (tx_lost_delay_toleration*5) {
                             time.Sleep(5000*time.Millisecond)
-                            err = invoke_rest("GET", "device?address="+device.Address, nil, dr1)
+                            err = invoke_rest("GET", "device?address="+device.Address, nil, &dr1)
                             if err != nil {
                                 fmt.Printf("Error getting device info:%v\n",err)
                                 os.Exit(1)
