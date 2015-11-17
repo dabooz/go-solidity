@@ -178,7 +178,6 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 								}
 							}
 						}
-
 					} else {
 						if rpcResp.Result != "0x" {
 							result, err = self.decodeOutputString(method_name, rpcResp.Result.(string)[2:])
