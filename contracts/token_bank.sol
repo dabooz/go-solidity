@@ -66,10 +66,16 @@ contract token_bank {
     event ProposerVerified(uint indexed _event_code, address _from, address _to, address indexed _contract);
     event ProposalCompleted(uint indexed _event_code, address _from, address _to, address indexed _contract);
 
+    uint escrow_debug;
+    
+    function get_debug() constant returns (uint r) {
+        return escrow_debug;
+    }
     // Constructor, runs when this contract is deployed (aka instantiated)
     function token_bank() {
         minter = msg.sender;
         total_currency = 1000000000000000;
+        escrow_debug = 0;
     }
 
     // Send currency to another party
@@ -134,19 +140,26 @@ contract token_bank {
     // a) there isn't already a proposal between the parties involving the input smart contract
     // b) the proposal includes a non-zero amount of crytocurrency
     function create_escrow(address _cp, address _contract, uint _amount) returns (bool rv) {
+        escrow_debug = 0;
         if (_amount > 0 && hasAmount(tx.origin,_amount)) {
+            escrow_debug = 1;
             var prop = escrow[tx.origin].counter_parties[_cp].proposals[_contract];
+            escrow_debug = 2;
             if (prop.amount == 0) {
+                escrow_debug = 3;
                 escrow[tx.origin].counter_parties[_cp].proposals[_contract] = proposal({proposer_vote:false,
                                                                                         counter_party_vote:false,
                                                                                         amount:_amount});
                 balances[tx.origin] -= _amount;
                 NewProposal(uint(event_codes.escrow_created), tx.origin, _cp, _contract);
+                escrow_debug = 4;
                 return true;
             } else {
+                escrow_debug = 5;
                 return false;
             }
         } else {
+            escrow_debug = 6;
             return false;
         }
     }
@@ -162,11 +175,15 @@ contract token_bank {
         }
     }
 
-    // The counter party might want to look at the proposal. This is done in a way that no one other
-    // than the counter party can see the proposal.
-    function get_escrow_amount(address _proposer, address _contract) constant returns (uint rv) {
-        var prop = escrow[_proposer].counter_parties[tx.origin].proposals[_contract];
-        return prop.amount;
+    // Both parties might want to look at the proposal. This is done in a way that only the involved parties
+    // can see the amount.
+    function get_escrow_amount(address _proposer, address _cp, address _contract) constant returns (uint rv) {
+        if (tx.origin == _proposer || tx.origin == _cp) {
+            var prop = escrow[_proposer].counter_parties[tx.origin].proposals[_contract];
+            return prop.amount;
+        } else {
+            return 0;
+        }
     }
     function get_counterparty_accepted(address _proposer, address _cp, address _contract) constant returns (bool rv) {
         var prop = escrow[_proposer].counter_parties[_cp].proposals[_contract];
