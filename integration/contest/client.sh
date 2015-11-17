@@ -34,7 +34,7 @@ NETWORKID=$((RANDOM * RANDOM))
 ETHERBASE=$(cat accounts)
 
 echo "Starting Ethereum."
-geth-bcn --shh --verbosity 4 --nodiscover --networkid $NETWORKID --minerthreads 1 --mine --rpc --rpcapi admin,db,eth,debug,miner,net,shh,txpool,personal,web3 --genesis /root/genesis.json >/tmp/geth.log 2>&1 &
+geth-bcn --fast --shh --verbosity 4 --nodiscover --networkid $NETWORKID --minerthreads 1 --mine --rpc --rpcapi "admin,db,eth,debug,miner,net,shh,txpool,personal,web3" --genesis /root/genesis.json >/tmp/geth.log 2>&1 &
 
 echo "Waiting for miner to mine a block."
 BALANCE=0
