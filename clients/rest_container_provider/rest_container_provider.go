@@ -210,6 +210,16 @@ func main() {
                 // decide what to do; accept or cancel.
                 if agreement_set {
                     fmt.Printf("Waiting for device to accept proposal, or cancel.\n")
+
+                    xr := BankResponseWith{}
+                    err = invoke_rest("GET", "bank?loans=true", nil, &xr)
+                    if err != nil {
+                        fmt.Printf("Error getting bank balance:%v\n",err)
+                        os.Exit(1)
+                    }
+                    xbal := xr.Tokens
+                    fmt.Printf("Owner bacon balance is:%v\n",xbal)
+
                     agreement_reached := false
                     cancelled := false
                     dr1 := DeviceResponse{}
