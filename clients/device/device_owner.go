@@ -202,6 +202,7 @@ func main() {
         var proposal_amount interface{}
         p = make([]interface{},0,10)
         p = append(p,container_provider)
+        p = append(p,device_owner)
         p = append(p,sc.Get_contract_address())
         if proposal_amount,err = bank.Invoke_method("get_escrow_amount",p); err != nil {
             fmt.Printf("...terminating, could not get escrow amount: %v\n",err)
