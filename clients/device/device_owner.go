@@ -219,6 +219,9 @@ func main() {
             }
         } else {
 
+            p = make([]interface{},0,10)
+            p = append(p,container_provider)
+            p = append(p,sc.Get_contract_address())
             p = append(p,true)
             if _,err = bank.Invoke_method("counter_party_vote",p); err != nil {
                 fmt.Printf("...terminating, could not send counter party vote: %v\n",err)
