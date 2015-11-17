@@ -179,7 +179,7 @@ contract token_bank {
     // can see the amount.
     function get_escrow_amount(address _proposer, address _cp, address _contract) constant returns (uint rv) {
         if (tx.origin == _proposer || tx.origin == _cp) {
-            var prop = escrow[_proposer].counter_parties[tx.origin].proposals[_contract];
+            var prop = escrow[_proposer].counter_parties[_cp].proposals[_contract];
             return prop.amount;
         } else {
             return 0;
