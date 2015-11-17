@@ -183,7 +183,8 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 						if rpcResp.Result != "0x" {
 							result, err = self.decodeOutputString(method_name, rpcResp.Result.(string)[2:])
 						} else {
-							err = &RPCError{fmt.Sprintf("RPC invocation returned %v, the EVM probably failed executing method %v.", rpcResp.Result, method_name)}
+							result = 0
+							// err = &RPCError{fmt.Sprintf("RPC invocation returned %v, the EVM probably failed executing method %v.", rpcResp.Result, method_name)}
 						}
 					}
 				}
