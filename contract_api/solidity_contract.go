@@ -117,13 +117,19 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 	var result interface{}
 	var rpcResp *rpcResponse = new(rpcResponse)
 
-	if hex_sig, err := self.get_method_sig(method_name); err == nil {
-		if out, err = self.Call_rpc_api("web3_sha3", hex_sig); err == nil {
-			if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
-				if rpcResp.Error.Message != "" {
-					err = &RPCError{fmt.Sprintf("RPC hash of method signature for %v failed, error: %v.", method_name, rpcResp.Error.Message)}
-				} else {
-					method_id = rpcResp.Result.(string)[:10]
+	if (self.contractAddress == "") {
+		err = &RPCError{fmt.Sprintf("This object has no contract address. Please use Set_contract_address() before any contract methods.\n")}
+	}
+
+	if err == nil {
+		if hex_sig, err := self.get_method_sig(method_name); err == nil {
+			if out, err = self.Call_rpc_api("web3_sha3", hex_sig); err == nil {
+				if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
+					if rpcResp.Error.Message != "" {
+						err = &RPCError{fmt.Sprintf("RPC hash of method signature for %v failed, error: %v.", method_name, rpcResp.Error.Message)}
+					} else {
+						method_id = rpcResp.Result.(string)[:10]
+					}
 				}
 			}
 		}
