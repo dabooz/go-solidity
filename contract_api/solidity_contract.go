@@ -118,7 +118,9 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 	var rpcResp *rpcResponse = new(rpcResponse)
 
 	if (self.contractAddress == "") {
-		err = &RPCError{fmt.Sprintf("This object has no contract address. Please use Set_contract_address() before any contract methods.\n")}
+		err = &RPCError{fmt.Sprintf("This object has no contract address. Please use Set_contract_address() before invoking any contract methods.\n")}
+	} else if (self.compiledContract == nil ) {
+		err = &RPCError{fmt.Sprintf("This object has no compiled contract. Please use Load_contract() before invoking any contract methods.\n")}
 	}
 
 	if err == nil {
