@@ -155,7 +155,9 @@ contract token_bank {
     function cancel_escrow(address _proposer, address _cp, address _contract) returns (bool rv) {
         var prop = escrow[_proposer].counter_parties[_cp].proposals[_contract];
         if (prop.amount != 0 && (tx.origin == _proposer || tx.origin == _cp)) {
-            balances[_proposer] += escrow[_proposer].counter_parties[_cp].proposals[_contract].amount;
+            if (prop.proposer_vote == false || prop.counter_party_vote == false) {
+                balances[_proposer] += escrow[_proposer].counter_parties[_cp].proposals[_contract].amount;
+            }
             clear_escrow(_proposer, _cp, _contract);
             CancelProposal(uint(event_codes.escrow_cancelled), _proposer, _cp, _contract);
             return true;
