@@ -1,6 +1,7 @@
 contract token_bank {
     function create_escrow(address _cp, address _contract, uint _amount) returns (bool rv) {}
     function cancel_escrow(address _proposer, address _cp, address _contract) returns (bool rv) {}
+    function clear_escrow(address _proposer, address _cp, address _contract) {}
 }
 
 contract container_executor {
@@ -43,11 +44,16 @@ contract container_executor {
         }
     }
     function exec_complete() returns (bool r) {
-        ExecutionComplete(execution_complete_event_code,agreement,this);
-        agreement = "";
-        whisper = "";
-        container_provider = address(0);
-        return true;
+        if (tx.origin == owner) {
+            ExecutionComplete(execution_complete_event_code,agreement,this);
+            piggy_bank.clear_escrow(container_provider, tx.origin, this);
+            agreement = "";
+            whisper = "";
+            container_provider = address(0);
+            return true;
+        } else {
+            return false;
+        }
     }
     function in_contract() constant returns (bool r) {
         if (container_provider == address(0)) {

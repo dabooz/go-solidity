@@ -9,9 +9,15 @@ contract directory {
         address contract_owner;
     }
 
-    // A mapping of names to contract addresses. This is the heart
+    // A mapping of names to version number. This is the heart
     // of the directory.
-    mapping (bytes32 => entry) names;
+    mapping (bytes32 => version) names;
+    
+    // A mapping of version to contract addresses. This is the heart
+    // of the directory.
+    struct version {
+        mapping (uint => entry) versions;
+    }
     
     // A list of all registered names that behaves like an array.
     // The last_index variable holds the index (base zero) of the next
@@ -29,13 +35,13 @@ contract directory {
     }
 
     // Add an entry to the directory
-    function add_entry(bytes32 _entry_name, address _address) returns (uint r) {
+    function add_entry(bytes32 _entry_name, address _address, uint _version) returns (uint r) {
         if (_entry_name == 0 || _address == address(0)) {
             return 1;
         }
-        var addr = names[_entry_name].contract_addr;
+        var addr = names[_entry_name].versions[_version].contract_addr;
         if (addr == address(0)) {
-            names[_entry_name] = entry({contract_addr:_address,
+            names[_entry_name].versions[_version] = entry({contract_addr:_address,
                                         contract_owner:tx.origin});
             index[last_index] = _entry_name;
             last_index += 1;
@@ -47,14 +53,19 @@ contract directory {
 
     // Retrieve a specific entry from the directory
     function get_entry(bytes32 _entry_name) constant returns (address r) {
-        return names[_entry_name].contract_addr;
+        return names[_entry_name].versions[0].contract_addr;
+    }
+
+    // Retrieve a specific entry from the directory by version
+    function get_entry_by_version(bytes32 _entry_name, uint _version) constant returns (address r) {
+        return names[_entry_name].versions[_version].contract_addr;
     }
 
     // Retrieve the owner of a given entry. Only the owner of this contract
     // is allowed to retrieve this information.
-    function get_entry_owner(bytes32 _entry_name) constant returns (address r) {
+    function get_entry_owner(bytes32 _entry_name, uint _version) constant returns (address r) {
         if (tx.origin == owner) {
-            return names[_entry_name].contract_owner;
+            return names[_entry_name].versions[_version].contract_owner;
         } else {
             return address(0);
         }
@@ -65,8 +76,8 @@ contract directory {
     // index list to ensure there are no gaps in it. This means that
     // registered names at a given index location may move over time
     // if entries are deleted.
-    function delete_entry(bytes32 _entry_name) returns (bool r) {
-        var e = names[_entry_name];
+    function delete_entry(bytes32 _entry_name, uint _version) returns (bool r) {
+        var e = names[_entry_name].versions[_version];
         if (e.contract_owner == tx.origin && e.contract_addr != address(0)) {
             delete names[_entry_name];
             uint i = 0;
@@ -103,4 +114,4 @@ contract directory {
     function kill() {
         if (msg.sender == owner) suicide(owner);
     }
-} 
+}

@@ -46,6 +46,7 @@ func main() {
                 p := make([]interface{},0,10)
                 p = append(p,"token_bank")
                 p = append(p,tbsc.Get_contract_address())
+                p = append(p,0)
                 _,_ = dsc.Invoke_method("add_entry",p)
                 fmt.Println("Added token bank to directory.")
 
@@ -53,6 +54,7 @@ func main() {
                 p = make([]interface{},0,10)
                 p = append(p,"device_registry")
                 p = append(p,drsc.Get_contract_address())
+                p = append(p,0)
                 _,err = dsc.Invoke_method("add_entry",p)
                 fmt.Println("Added device registry to directory.")
 

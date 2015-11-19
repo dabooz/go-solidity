@@ -221,13 +221,14 @@ contract token_bank {
         if (prop.amount != 0 && prop.proposer_vote && prop.counter_party_vote) {
             balances[_cp] += escrow[_proposer].counter_parties[_cp].proposals[_contract].amount;
             ProposalCompleted(uint(event_codes.escrow_closed), _proposer, _cp, _contract);
-            clear_escrow(_proposer, _cp, _contract);
         }
     }
 
-    // Escrow proposal is cleared when the escrow is closed or cancelled.
-    function clear_escrow(address _proposer, address _cp, address _contract) internal {
-        delete escrow[_proposer].counter_parties[_cp].proposals[_contract];
+    // Escrow proposal is cleared when the agreement ends.
+    function clear_escrow(address _proposer, address _cp, address _contract) {
+        if (tx.origin == _cp) {
+            delete escrow[_proposer].counter_parties[_cp].proposals[_contract];
+        }
     }
 
     // Only the contract owner or a contract owned by the same entity can
@@ -260,3 +261,4 @@ contract token_bank {
         if (msg.sender == minter) suicide(minter);
     }
 }
+
