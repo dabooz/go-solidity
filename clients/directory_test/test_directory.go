@@ -33,6 +33,9 @@ func main() {
     p = append(p,"a")
     if caddr,err := dirc.Invoke_method("get_entry",p); err == nil {
         fmt.Printf("Contract Address is %v\n",caddr)
+        if caddr.(string) != "0x0000000000000000000000000000000000000000" {
+            os.Exit(1)
+        }
     } else {
         fmt.Printf("Error invoking get_entry: %v\n",err)
         os.Exit(1)
@@ -66,6 +69,9 @@ func main() {
     p = append(p,"a")
     if aa,err := dirc.Invoke_method("get_entry",p); err == nil {
         fmt.Printf("Retrieved 'a', is %v.\n",aa)
+        if aa.(string) != "0x0000000000000000000000000000000000000010" {
+            os.Exit(1)
+        }
     } else {
         fmt.Printf("Error invoking add_entry: %v\n",err)
         os.Exit(1)
@@ -77,6 +83,9 @@ func main() {
     p = append(p,0)
     if aa,err := dirc.Invoke_method("get_entry_owner",p); err == nil {
         fmt.Printf("Retrieved owner of 'a' %v.\n",aa)
+        if aa.(string) != registry_owner {
+            os.Exit(1)
+        }
     } else {
         fmt.Printf("Error invoking add_entry: %v\n",err)
         os.Exit(1)
@@ -146,6 +155,9 @@ func main() {
     p = append(p,1)
     if nl,err := dirc.Invoke_method("get_entry_by_version",p); err == nil {
         fmt.Printf("Registered c version 1 as %v\n",nl)
+        if nl.(string) != "0x0000000000000000000000000000000000000013" {
+            os.Exit(1)
+        }
     } else {
         fmt.Printf("Error invoking get_entry_by_version: %v\n",err)
         os.Exit(1)
@@ -244,6 +256,9 @@ func main() {
     p = append(p,"0x0000000000000000000000000000000000000001")
     if wa,err := wd.Invoke_method("get_entry",p); err == nil {
         fmt.Printf("Received %v.\n",wa)
+        if wa.(string) != "" {
+            os.Exit(1)
+        }
     } else {
         fmt.Printf("Error invoking whisper get_entry: %v\n",err)
         os.Exit(1)
@@ -264,6 +279,9 @@ func main() {
     p = append(p,registry_owner)
     if wa,err := wd.Invoke_method("get_entry",p); err == nil {
         fmt.Printf("Received %v.\n",wa)
+        if wa.(string) != "0x0000deadbeef" {
+            os.Exit(1)
+        }
     } else {
         fmt.Printf("Error invoking whisper get_entry: %v\n",err)
         os.Exit(1)
@@ -284,6 +302,9 @@ func main() {
     p = append(p,registry_owner)
     if wa,err := wd.Invoke_method("get_entry",p); err == nil {
         fmt.Printf("Received %v.\n",wa)
+        if wa.(string) != "0x000012345678" {
+            os.Exit(1)
+        }
     } else {
         fmt.Printf("Error invoking whisper get_entry: %v\n",err)
         os.Exit(1)
@@ -302,6 +323,9 @@ func main() {
     p = append(p,registry_owner)
     if wa,err := wd.Invoke_method("get_entry",p); err == nil {
         fmt.Printf("Received %v.\n",wa)
+        if wa.(string) != "" {
+            os.Exit(1)
+        }
     } else {
         fmt.Printf("Error invoking whisper get_entry: %v\n",err)
         os.Exit(1)

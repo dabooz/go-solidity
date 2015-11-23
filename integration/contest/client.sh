@@ -53,26 +53,35 @@ done
 
 echo "Bootstrapping MTN smart contracts."
 mtn-bootstrap $ETHERBASE skipetcd >/tmp/bootstrap.log 2>&1
+BRC=$?
+if [ "$BRC" -ne 0 ]; then
+    echo "Bootstrap failed."
+    exit "$BRC"
+fi
 
 DIRADDR=$(cat directory)
 
 echo "Running directory tests."
 mtn-directory_test $DIRADDR $ETHERBASE 30 >/tmp/directory_test.log 2>&1
+DRC=$?
+if [ "$DRC" -ne 0 ]; then
+    echo "Directory tests failed."
+    exit "$DRC"
+fi
 
-#echo "Starting REST API server."
-#cd /root/marketplace/restapi
-#node app.js &
-
+echo "Starting Exchange REST Server."
 mtn-gorest $DIRADDR $ETHERBASE >/tmp/restapi.log 2>&1 &
 
 sleep 5
 
+echo "Starting Device simulator."
 WHISPERD=$(curl -sL http://localhost:8545 -X POST --data '{"jsonrpc":"2.0","method":"shh_newIdentity","params":[],"id":1}' | jq -r '.result')
 
 echo $WHISPERD
 
 mtn-device_owner $DIRADDR $ETHERBASE $WHISPERD >/tmp/device_owner.log 2>&1 &
 
+echo "Starting Glensung simulator."
 WHISPERP=$(curl -sL http://localhost:8545 -X POST --data '{"jsonrpc":"2.0","method":"shh_newIdentity","params":[],"id":1}' | jq -r '.result')
 
 echo $WHISPERP
@@ -82,6 +91,6 @@ mtn-rest_container_provider $WHISPERP $ETHERBASE 30 >/tmp/glensung.log 2>&1 &
 echo "all done"
 while :
 do
-	sleep 1
+	sleep 300
 done
 
