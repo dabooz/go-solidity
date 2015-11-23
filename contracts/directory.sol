@@ -22,7 +22,11 @@ contract directory {
     // A list of all registered names that behaves like an array.
     // The last_index variable holds the index (base zero) of the next
     // available slot in the array.
-    mapping (uint => bytes32) index;
+    struct name_entry {
+        bytes32 name;
+        uint version;
+    }
+    mapping (uint => name_entry) index;
     uint last_index = 0;
     
     // This is working storage used to return the list of registered names.
@@ -43,7 +47,8 @@ contract directory {
         if (addr == address(0)) {
             names[_entry_name].versions[_version] = entry({contract_addr:_address,
                                         contract_owner:tx.origin});
-            index[last_index] = _entry_name;
+            index[last_index] = name_entry({name:_entry_name,
+                                            version:_version});
             last_index += 1;
             return 0;
         } else {
@@ -79,11 +84,11 @@ contract directory {
     function delete_entry(bytes32 _entry_name, uint _version) returns (bool r) {
         var e = names[_entry_name].versions[_version];
         if (e.contract_owner == tx.origin && e.contract_addr != address(0)) {
-            delete names[_entry_name];
+            delete names[_entry_name].versions[_version];
             uint i = 0;
             bool removed = false;
             while (i < last_index) {
-                if (index[i] == _entry_name) {
+                if (index[i].name == _entry_name && index[i].version == _version) {
                     delete index[i];
                     removed = true;
                 } else if (removed == true) {
@@ -100,11 +105,20 @@ contract directory {
     }
 
     // Get some or all of the names registered in the directory
+    // If a name is registered under multiple versions it will appear
+    // multiple times in the output array.
     function get_names(uint _start, uint _end) constant returns (bytes32[] r) {
-        rr.length = _end-_start+1;
-        uint i = 0;
-        while (i < _end-_start+1) {
-            rr[i] = index[i+_start];
+        uint i = _start;
+        if (_start >= last_index) {
+            i = last_index;
+        }
+        uint stop = _end+1;
+        if (_end >= last_index) {
+            stop = last_index;
+        }
+        rr.length = stop-i;
+        while (i < stop) {
+            rr[i] = index[i].name;
             i += 1;
         }
         return rr;

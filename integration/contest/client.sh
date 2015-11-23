@@ -56,6 +56,9 @@ mtn-bootstrap $ETHERBASE skipetcd >/tmp/bootstrap.log 2>&1
 
 DIRADDR=$(cat directory)
 
+echo "Running directory tests."
+mtn-directory_test $DIRADDR $ETHERBASE 30 >/tmp/directory_test.log 2>&1
+
 #echo "Starting REST API server."
 #cd /root/marketplace/restapi
 #node app.js &
