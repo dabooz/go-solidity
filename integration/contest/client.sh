@@ -56,7 +56,6 @@ mtn-bootstrap $ETHERBASE skipetcd >/tmp/bootstrap.log 2>&1
 BRC=$?
 if [ "$BRC" -ne 0 ]; then
     echo "Bootstrap failed."
-    exit "$BRC"
 fi
 
 DIRADDR=$(cat directory)
@@ -66,7 +65,6 @@ mtn-directory_test $DIRADDR $ETHERBASE 30 >/tmp/directory_test.log 2>&1
 DRC=$?
 if [ "$DRC" -ne 0 ]; then
     echo "Directory tests failed."
-    exit "$DRC"
 fi
 
 echo "Starting Exchange REST Server."
