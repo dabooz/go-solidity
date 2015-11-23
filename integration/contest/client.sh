@@ -52,7 +52,7 @@ do
 done
 
 echo "Bootstrapping MTN smart contracts."
-mtn-bootstrap $ETHERBASE skipetcd >/tmp/bootstrap.log 2>&1
+mtn-bootstrap $ETHERBASE >/tmp/bootstrap.log 2>&1
 BRC=$?
 if [ "$BRC" -ne 0 ]; then
     echo "Bootstrap failed."
