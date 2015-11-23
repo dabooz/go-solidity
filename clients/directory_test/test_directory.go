@@ -291,13 +291,13 @@ func main() {
 
     fmt.Printf("Delete your entry.\n")
     if _,err := wd.Invoke_method("delete_entry",nil); err == nil {
-        fmt.Printf("Delete the entry.\n")
+        fmt.Printf("Deleted the entry.\n")
     } else {
         fmt.Printf("Error invoking whisper add_entry: %v\n",err)
         os.Exit(1)
     }
 
-    fmt.Printf("Get your current entry, should be 0x00..00.\n")
+    fmt.Printf("Get your current entry, should be empty string.\n")
     p = make([]interface{},0,10)
     p = append(p,registry_owner)
     if wa,err := wd.Invoke_method("get_entry",p); err == nil {
