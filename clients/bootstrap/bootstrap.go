@@ -1,11 +1,9 @@
 package main 
 
 import (
-    "bytes"
     "fmt"
     "repo.hovitos.engineering/MTN/go-solidity/contract_api"
     "io/ioutil"
-    "net/http"
     "os"
 )
 
@@ -17,11 +15,6 @@ func main() {
         os.Exit(1)
     }
     owning_acount := os.Args[1]
-
-    skip_etcd := ""
-    if len(os.Args) > 2 {
-        skip_etcd = os.Args[2]
-    }
 
     fmt.Printf("Using account %v.\n",owning_acount)
 
@@ -64,24 +57,25 @@ func main() {
                 _,err = drsc.Invoke_method("set_bank",p)
                 fmt.Println("Connected device registry to token bank.")
 
-                // Register directory contract in global etcd
+                // Saving directory address to file system
 
-                if skip_etcd == "" {
-                    fmt.Printf("Registering directory contract in etcd.\n")
-                    etcd_url := "http://etcd:2379/v2/keys/directory"
-                    post_data := "value="+dsc.Get_contract_address()
-                    req,_ := http.NewRequest("PUT", etcd_url, bytes.NewBuffer([]byte(post_data)))
-                    req.Header.Add("content-type", "application/x-www-form-urlencoded")
-                    client := &http.Client{}
-                    resp,err := client.Do(req)
-                    if err != nil || (resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated) {
-                        fmt.Printf("PUT failed:%v, status %v\n",err,resp.StatusCode)
-                    }
-                    defer resp.Body.Close()
-                    fmt.Printf("Registered directory contract in etcd.\n")
+                _ = ioutil.WriteFile("directory",[]byte(dsc.Get_contract_address()[2:]),0644)
+                fmt.Printf("Wrote directory address to file system.\n")
+
+                fmt.Println("Deploying whisper_directory contract.")
+                wd := contract_api.SolidityContractFactory("whisper_directory")
+                if res,err := wd.Deploy_contract(owning_acount, ""); err == nil {
+                    fmt.Printf("Deployed whisper_directory contract:%v at %v.\n",res,drsc.Get_contract_address())
+                    fmt.Println("Adding token bank to directory.")
+                    p := make([]interface{},0,10)
+                    p = append(p,"whisper_directory")
+                    p = append(p,wd.Get_contract_address())
+                    p = append(p,0)
+                    _,_ = dsc.Invoke_method("add_entry",p)
+                    fmt.Println("Added whisper_directory to directory.")
                 } else {
-                    _ = ioutil.WriteFile("directory",[]byte(dsc.Get_contract_address()[2:]),0644)
-                    fmt.Printf("Wrote directory address to file system.\n")
+                    fmt.Printf("Error deploying whisper directory: %v\n",err)
+                    os.Exit(1)
                 }
 
                 fmt.Println("Successfully completed MTN contract bootstrap.")
