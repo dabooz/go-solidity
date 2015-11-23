@@ -66,7 +66,7 @@ func main() {
                 wd := contract_api.SolidityContractFactory("whisper_directory")
                 if res,err := wd.Deploy_contract(owning_acount, ""); err == nil {
                     fmt.Printf("Deployed whisper_directory contract:%v at %v.\n",res,drsc.Get_contract_address())
-                    fmt.Println("Adding token bank to directory.")
+                    fmt.Println("Adding whisper_directory to directory.")
                     p := make([]interface{},0,10)
                     p = append(p,"whisper_directory")
                     p = append(p,wd.Get_contract_address())

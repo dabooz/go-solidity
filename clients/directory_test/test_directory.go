@@ -41,7 +41,7 @@ func main() {
     fmt.Printf("Retrieve a list of all registered names, should have only the MTN platform entries.\n")
     p = make([]interface{},0,10)
     p = append(p,0)
-    p = append(p,1)
+    p = append(p,10)
     if nl,err := dirc.Invoke_method("get_names",p); err == nil {
         fmt.Printf("Registered names %v\n",nl)
     } else {
@@ -74,6 +74,7 @@ func main() {
     fmt.Printf("Retrieve owner of 'a', should be %v.\n",registry_owner)
     p = make([]interface{},0,10)
     p = append(p,"a")
+    p = append(p,0)
     if aa,err := dirc.Invoke_method("get_entry_owner",p); err == nil {
         fmt.Printf("Retrieved owner of 'a' %v.\n",aa)
     } else {
@@ -84,7 +85,7 @@ func main() {
     fmt.Printf("Retrieve a list of all registered names, should have 'a' in it.\n")
     p = make([]interface{},0,10)
     p = append(p,0)
-    p = append(p,1)
+    p = append(p,10)
     if nl,err := dirc.Invoke_method("get_names",p); err == nil {
         fmt.Printf("Registered names %v\n",nl)
     } else {
@@ -119,7 +120,7 @@ func main() {
     fmt.Printf("Register 'c' with address 0x0000000000000000000000000000000000000013, version 1.\n")
     p = make([]interface{},0,11)
     p = append(p,"c")
-    p = append(p,"0x0000000000000000000000000000000000000012")
+    p = append(p,"0x0000000000000000000000000000000000000013")
     p = append(p,1)
     if _,err := dirc.Invoke_method("add_entry",p); err == nil {
         fmt.Printf("Registered 'c, version 1'.\n")
@@ -146,7 +147,7 @@ func main() {
     if nl,err := dirc.Invoke_method("get_entry_by_version",p); err == nil {
         fmt.Printf("Registered c version 1 as %v\n",nl)
     } else {
-        fmt.Printf("Error invoking get_names: %v\n",err)
+        fmt.Printf("Error invoking get_entry_by_version: %v\n",err)
         os.Exit(1)
     }
 
@@ -161,10 +162,10 @@ func main() {
         os.Exit(1)
     }
 
-    fmt.Printf("Retrieve a list of all registered names, should have 'a,c' in it.\n")
+    fmt.Printf("Retrieve a list of all registered names, should have MTN contracts plus 'a,c,c' in it.\n")
     p = make([]interface{},0,10)
     p = append(p,0)
-    p = append(p,2)
+    p = append(p,10)
     if nl,err := dirc.Invoke_method("get_names",p); err == nil {
         fmt.Printf("Registered names %v\n",nl)
     } else {
@@ -208,7 +209,7 @@ func main() {
     fmt.Printf("Retrieve a list of all registered names, should be just the MTN platform entries.\n")
     p = make([]interface{},0,10)
     p = append(p,0)
-    p = append(p,1)
+    p = append(p,10)
     if nl,err := dirc.Invoke_method("get_names",p); err == nil {
         fmt.Printf("Registered names %v\n",nl)
     } else {
@@ -221,9 +222,10 @@ func main() {
     fmt.Printf("Retrieve contract for whisper directory.\n")
     p = make([]interface{},0,10)
     p = append(p,"whisper_directory")
-    var wdaddr interface{}
-    if wdaddr,err := dirc.Invoke_method("get_entry",p); err == nil {
-        fmt.Printf("Contract Address is %v\n",wdaddr)
+    var wdaddr string
+    if wda,err := dirc.Invoke_method("get_entry",p); err == nil {
+        fmt.Printf("Contract Address is %v\n",wda)
+        wdaddr = wda.(string)
     } else {
         fmt.Printf("Error invoking get_entry: %v\n",err)
         os.Exit(1)
@@ -231,11 +233,11 @@ func main() {
 
     // Establish the whisper directory contract
     wd := contract_api.SolidityContractFactory("whisper_directory")
-    if _,err := dirc.Load_contract(registry_owner, ""); err != nil {
+    if _,err := wd.Load_contract(registry_owner, ""); err != nil {
         fmt.Printf("...terminating, could not load whisper directory contract: %v\n",err)
         os.Exit(1)
     }
-    wd.Set_contract_address(wdaddr.(string))
+    wd.Set_contract_address(wdaddr)
 
     fmt.Printf("Get entry at address 0x00..001, it's not there.\n")
     p = make([]interface{},0,10)
