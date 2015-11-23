@@ -83,7 +83,7 @@ func main() {
     p = append(p,0)
     if aa,err := dirc.Invoke_method("get_entry_owner",p); err == nil {
         fmt.Printf("Retrieved owner of 'a' %v.\n",aa)
-        if aa.(string) != registry_owner {
+        if aa.(string)[2:] != registry_owner {
             os.Exit(1)
         }
     } else {
