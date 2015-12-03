@@ -20,7 +20,7 @@ type SolidityContract struct {
 	name                string
 	from                string
 	rpcURL              string
-	compiledContract    *rpcCompiledContract
+	compiledContract    *RpcCompiledContract
 	contractAddress     string
 	filter_id           string
 	noEventlistener     bool
@@ -264,11 +264,11 @@ func (self *SolidityContract) Set_contract_address(addr string) {
 	self.filter_id, _ = self.establish_event_listener()
 }
 
-func (self *SolidityContract) Get_compiled_contract() *rpcCompiledContract {
+func (self *SolidityContract) Get_compiled_contract() *RpcCompiledContract {
 	return self.compiledContract
 }
 
-func (self *SolidityContract) Set_compiled_contract(con *rpcCompiledContract) {
+func (self *SolidityContract) Set_compiled_contract(con *RpcCompiledContract) {
 	self.compiledContract = con
 }
 
@@ -394,11 +394,11 @@ func (self *SolidityContract) establish_event_listener() (string, error) {
 	return result, err
 }
 
-func (self *SolidityContract) compile_contract(contract_string string) (*rpcCompiledContract, error) {
+func (self *SolidityContract) compile_contract(contract_string string) (*RpcCompiledContract, error) {
 	self.logger.Debug("Entry", contract_string[:40]+"...")
 	err := error(nil)
 	var out string
-	var result *rpcCompiledContract
+	var result *RpcCompiledContract
 	var rpcResp *rpcCompilerResponse = new(rpcCompilerResponse)
 
 	if out, err = self.Call_rpc_api("eth_compileSolidity", contract_string); err == nil {
@@ -1234,7 +1234,7 @@ type rpcFilterChanges struct {
 type rpcCompilerResponse struct {
 	Id      string                         `json:"id"`
 	Version string                         `json:"jsonrpc"`
-	Result  map[string]rpcCompiledContract `json:"result"`
+	Result  map[string]RpcCompiledContract `json:"result"`
 	Error   struct {
 		Code    int    `json:"code"`
 		Message string `json:"message"`
@@ -1263,7 +1263,7 @@ func (self *abiDefEntry) print() string {
 	}
 }
 
-type rpcCompiledContract struct {
+type RpcCompiledContract struct {
 	Info struct {
 		Language        string        `json:"language"`
 		Languageversion string        `json:"languageVersion"`
