@@ -272,6 +272,10 @@ func (self *SolidityContract) Set_compiled_contract(con *RpcCompiledContract) {
 	self.compiledContract = con
 }
 
+func (self *SolidityContract) Set_from(f string) {
+	self.from = f
+}
+
 func (self *SolidityContract) Set_skip_eventlistener() {
 	self.noEventlistener = true
 }
