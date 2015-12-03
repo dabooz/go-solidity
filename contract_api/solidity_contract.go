@@ -264,6 +264,14 @@ func (self *SolidityContract) Set_contract_address(addr string) {
 	self.filter_id, _ = self.establish_event_listener()
 }
 
+func (self *SolidityContract) Get_compiled_contract() *rpcCompiledContract {
+	return self.compiledContract
+}
+
+func (self *SolidityContract) Set_compiled_contract(con *rpcCompiledContract) {
+	self.compiledContract = con
+}
+
 func (self *SolidityContract) Set_skip_eventlistener() {
 	self.noEventlistener = true
 }
