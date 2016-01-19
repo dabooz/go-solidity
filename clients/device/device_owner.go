@@ -241,7 +241,11 @@ func main() {
                 if int(delta) < 150 {
                     time.Sleep(5000*time.Millisecond)
                     var a_reached interface{}
-                    if a_reached,err = bank.Invoke_method("get_proposer_accepted",nil); err != nil {
+                    p = make([]interface{},0,10)
+                    p = append(p,container_provider)
+                    p = append(p,device_owner)
+                    p = append(p,sc.Get_contract_address())
+                    if a_reached,err = bank.Invoke_method("get_proposer_accepted",p); err != nil {
                         fmt.Printf("...terminating, error checking proposer vote: %v\n",err)
                         os.Exit(1)
                     }
@@ -290,7 +294,7 @@ func main() {
                 fmt.Printf("Contract rejected.\n")
             }
         }
-        // Check glensung bacon balance
+        // Check bacon balance
         var bal interface{}
         if bal,err = bank.Invoke_method("account_balance",nil); err != nil {
             fmt.Printf("...terminating, could not get token balance: %v\n",err)
