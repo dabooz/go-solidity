@@ -29,8 +29,8 @@ func main() {
     var new_container_event_code uint64 = 1
     //var execution_complete_event_code uint64 = 2
 
-    var escrow_cancelled_event_code uint64 = 6
-    var proposer_accepted_event_code uint64 = 8
+    // var escrow_cancelled_event_code uint64 = 6
+    // var proposer_accepted_event_code uint64 = 8
 
     // ---------------------- Start of one time init code ------------------------
     //
@@ -232,25 +232,55 @@ func main() {
             time.Sleep(10000*time.Millisecond)
 
             fmt.Printf("Waiting for acceptance from proposer.\n")
-            var received_codes []uint64
-            received_codes,_ = bank.Wait_for_event([]uint64{proposer_accepted_event_code,escrow_cancelled_event_code}, sc.Get_contract_address())
-            fmt.Printf("Received event codes: %v\n",received_codes)
 
             found_cancel := false
-            for _,ev := range received_codes {
-                if ev == escrow_cancelled_event_code {
-                    found_cancel = true
-                    fmt.Printf("Received cancel escrow.\n")
+            agreement_reached := false
+            start_timer := time.Now()
+            for !agreement_reached && !found_cancel {
+                delta := time.Now().Sub(start_timer).Seconds()
+                if int(delta) < 150 {
+                    time.Sleep(5000*time.Millisecond)
+                    var a_reached interface{}
+                    if a_reached,err = bank.Invoke_method("get_proposer_accepted",nil); err != nil {
+                        fmt.Printf("...terminating, error checking proposer vote: %v\n",err)
+                        os.Exit(1)
+                    }
+                    agreement_reached = a_reached.(bool)
+                    if agreement_reached == true {
+                        fmt.Printf("Governor has accepted.\n")
+                    } else {
+                        var container_provider interface{}
+                        if container_provider,err = sc.Invoke_method("get_container_provider",nil); err != nil {
+                            fmt.Printf("...terminating, could not get container provider: %v\n",err)
+                            os.Exit(1)
+                        }
+                        if container_provider == "" {
+                            fmt.Printf("Governor has cancelled.\n")
+                            found_cancel = true
+                        }
+                    }
+                } else {
+                    fmt.Printf("Timeout waiting for governor to agree.\n")
+                    break
                 }
-            }
+            } // looping for governor acceptance
 
-            if found_cancel == false {
-                fmt.Printf("Container run is complete, marking contract complete.\n")
-                if _,err = sc.Invoke_method("exec_complete",nil); err != nil {
-                    fmt.Printf("...terminating, could not send exec complete: %v\n",err)
-                    os.Exit(1)
-                }
-                fmt.Printf("Contract marked complete.\n")
+            if found_cancel == false && agreement_reached == true {
+                // stay in the agreement until the governor cancels it
+                cancel := false
+                for !cancel {
+                    time.Sleep(5000*time.Millisecond)
+                    var container_provider interface{}
+                    if container_provider,err = sc.Invoke_method("get_container_provider",nil); err != nil {
+                        fmt.Printf("...terminating, could not get container provider: %v\n",err)
+                        os.Exit(1)
+                    }
+                    if container_provider == "" {
+                        fmt.Printf("Governor has cancelled.\n")
+                        cancel = true
+                    }
+
+                } // looping for governor cancel
             } else {
                 fmt.Printf("Resetting device state.\n")
                 if _,err = sc.Invoke_method("reject_container",nil); err != nil {

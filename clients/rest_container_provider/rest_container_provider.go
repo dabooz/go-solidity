@@ -22,6 +22,7 @@ func main() {
     }
 
     err := error(nil)
+    rand.Seed(time.Now().UnixNano())
 
     whisper_account := os.Args[1]
     fmt.Printf("using whisper account %v\n",whisper_account)
@@ -258,8 +259,9 @@ func main() {
                         cr := DevicePostRequest{}
                         cr.Action = "cancel"
                         cr.Device = device.Address
-                        cr.Proposer = container_owner
-                        cr.Counterparty = dr1.Agreement.Counterparty
+                        // cr.Proposer = container_owner
+                        // cr.Counterparty = dr1.Agreement.Counterparty
+                        cr.Amount = 10
                         body,err := json.Marshal(cr)
                         if err != nil {
                             fmt.Printf("Error marshalling cancel request:%v\n",err)
@@ -295,6 +297,52 @@ func main() {
                             fmt.Printf("Handling whisper.\n")
                         }
 
+                        fmt.Printf("Make payments or cancel.\n")
+                        done := false
+                        for !done {
+                            time.Sleep(5000*time.Millisecond)
+                            action := rand.Intn(8)
+                            if action <= 1 {
+                                // cancel
+                                dpr := DevicePostRequest{}
+                                dpr.Action = "cancel"
+                                dpr.Device = device.Address
+                                dpr.Proposer = container_owner
+                                dpr.Counterparty = dr1.Agreement.Counterparty
+                                dpr.Amount = rand.Intn(2)+1
+                                fmt.Printf("Cancelling the agreement %v.\n",dpr.Amount)
+                                body,err := json.Marshal(dpr)
+                                if err != nil {
+                                    fmt.Printf("Error marshalling cancel request:%v\n",err)
+                                    os.Exit(1)
+                                }
+                                err = invoke_rest("POST", "device", body, nil)
+                                if err != nil {
+                                    fmt.Printf("Error cancelling:%v\n",err)
+                                    os.Exit(1)
+                                }
+                                done = true
+                            } else {
+                                // make payment
+                                dpr := DevicePostRequest{}
+                                dpr.Action = "make_payment"
+                                dpr.Device = device.Address
+                                dpr.Proposer = container_owner
+                                dpr.Counterparty = dr1.Agreement.Counterparty
+                                dpr.Amount = rand.Intn(2)+1
+                                fmt.Printf("Paying the device %v.\n",dpr.Amount)
+                                body,err := json.Marshal(dpr)
+                                if err != nil {
+                                    fmt.Printf("Error marshalling payment request:%v\n",err)
+                                    os.Exit(1)
+                                }
+                                err = invoke_rest("POST", "device", body, nil)
+                                if err != nil {
+                                    fmt.Printf("Error making payment:%v\n",err)
+                                    os.Exit(1)
+                                }
+                            }
+                        }
 
                     } else {
                         fmt.Printf("Device must have cancelled.\n")
@@ -370,6 +418,7 @@ type DevicePostRequest struct {
     Device string `json:"device"`
     Proposer string `json:"proposer"`
     Counterparty string `json:"counterparty"`
+    Amount int `json:"amount"`
 }
 
 
