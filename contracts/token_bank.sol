@@ -2,6 +2,10 @@ contract authorized_caller {
     function get_owner() constant returns (address r) {}
 }
 
+contract container_executor {
+    function cancel_container(uint _amount) returns (bool r) {}
+}
+
 contract token_bank {
 
     // The minter can create Bacon for any entity.
@@ -17,12 +21,13 @@ contract token_bank {
     // Holds the loan balances of all participants.
     mapping (address => uint) loans;
 
-    uint constant loan_limit = 1000;
+    uint constant loan_limit = 100000;
 
     // This represents the state of an escrow proposal
     struct proposal {
         bool proposer_vote;
         bool counter_party_vote;
+        bool cancelled;
         uint amount;
     }
 
@@ -54,7 +59,9 @@ contract token_bank {
         escrow_counterparty_accepted,   // counterparty accepts escrow
         escrow_proposer_accepted,       // proposer accepts escrow
         escrow_closed                   // escrow has closed
+        escrow_proposer_paid            // proposer paid
     }
+
     event Mint(uint indexed _event_code, uint _value);
     event ObtainLoan(uint indexed _event_code, address _from, uint _value);
     event ExtendLoan(uint indexed _event_code, address _from, uint _value);
@@ -65,6 +72,7 @@ contract token_bank {
     event CounterpartyAccepted(uint indexed _event_code, address _from, address _to, address indexed _contract);
     event ProposerVerified(uint indexed _event_code, address _from, address _to, address indexed _contract);
     event ProposalCompleted(uint indexed _event_code, address _from, address _to, address indexed _contract);
+    event ProposerPaid(uint indexed _event_code, address _from, address _to, address indexed _contract, uint _value);
 
     // Constructor, runs when this contract is deployed (aka instantiated)
     function token_bank() {
@@ -81,13 +89,19 @@ contract token_bank {
         return true;
     }
 
-    // Debug method,used to get a balances
+    // Get a balance
     function account_balance() constant returns (uint balance) {
         return balances[tx.origin];
     }
+    function account_balance_by_addr(address _addr) constant returns (uint balance) {
+        if (tx.origin == minter || tx.origin == _addr) {
+            return balances[_addr];
+        } else {
+            return 0;
+        }
+    }
 
     // Returns true when the input address has sufficient funds.
-    // It should be marked as internal when no longer needed for debug.
     function hasAmount(address _addr, uint _amount) internal constant returns (bool res) {
         return balances[_addr]>=_amount;
     }
@@ -123,6 +137,13 @@ contract token_bank {
     function loan_balance() constant returns (uint r) {
         return loans[tx.origin];
     }
+    function loan_balance_by_addr(address _addr) constant returns (uint balance) {
+        if (tx.origin == minter || tx.origin == _addr) {
+            return loans[_addr];
+        } else {
+            return 0;
+        }
+    }
     function exceeds_loan_limits(uint _amount) internal constant returns (bool r) {
         if (_amount > total_currency || _amount > loan_limit) {
             return true;
@@ -132,13 +153,14 @@ contract token_bank {
 
     // Create a new escrow proposal only if
     // a) there isn't already a proposal between the parties involving the input smart contract
-    // b) the proposal includes a non-zero amount of crytocurrency
+    // b) the proposal includes a non-zero number of tokens
     function create_escrow(address _cp, address _contract, uint _amount) returns (bool rv) {
         if (_amount > 0 && hasAmount(tx.origin,_amount)) {
             var prop = escrow[tx.origin].counter_parties[_cp].proposals[_contract];
             if (prop.amount == 0) {
                 escrow[tx.origin].counter_parties[_cp].proposals[_contract] = proposal({proposer_vote:false,
                                                                                         counter_party_vote:false,
+                                                                                        cancelled:false,
                                                                                         amount:_amount});
                 balances[tx.origin] -= _amount;
                 NewProposal(uint(event_codes.escrow_created), tx.origin, _cp, _contract);
@@ -151,23 +173,103 @@ contract token_bank {
         }
     }
 
-    // Either party can cancel the escrow at any time
-    function cancel_escrow(address _proposer, address _cp, address _contract) returns (bool rv) {
-        var prop = escrow[_proposer].counter_parties[_cp].proposals[_contract];
-        if (prop.amount != 0 && (tx.origin == _proposer || tx.origin == _cp)) {
-            if (prop.proposer_vote == false || prop.counter_party_vote == false) {
-                balances[_proposer] += escrow[_proposer].counter_parties[_cp].proposals[_contract].amount;
-            }
-            clear_escrow(_proposer, _cp, _contract);
-            CancelProposal(uint(event_codes.escrow_cancelled), _proposer, _cp, _contract);
+    // When the counter party is satisfied with the proposal, they vote to accept
+    // the proposal.
+    function counter_party_vote(address _proposer, address _contract, bool _vote) returns (bool rv) {
+        var prop = escrow[_proposer].counter_parties[tx.origin].proposals[_contract];
+        if (prop.amount != 0) {
+            prop.counter_party_vote = _vote;
+            CounterpartyAccepted(uint(event_codes.escrow_counterparty_accepted), _proposer, tx.origin, _contract);
             return true;
+        } else {
+            return false;
         }
     }
 
+    // When the proposer is satisfied that the proposal has been accepted, the agreement
+    // is complete.
+    function proposer_vote(address _cp, address _contract, bool _vote) returns (bool rv) {
+        var prop = escrow[tx.origin].counter_parties[_cp].proposals[_contract];
+        if (prop.amount != 0) {
+            prop.proposer_vote = _vote;
+            ProposerVerified(uint(event_codes.escrow_proposer_accepted), tx.origin, _cp, _contract);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    // When the proposer is ready to pay the counter party, they use this function to transfer
+    // funds and refill the escrow. The proposer will never pay more than what is escrowed.
+    // After the device owner is paid, the proposer must have funds to refill the escrow amount
+    // for the next segment of time. If the proposer doesn't have sufficient funds, then the
+    // agreement will be cancelled.
+    function make_payment(address _cp, address _contract, uint _amount) returns (bool rv) {
+        var prop = escrow[tx.origin].counter_parties[_cp].proposals[_contract];
+        if (prop.amount != 0 && prop.cancelled == false) {
+            var pay = _amount;
+            if (_amount > prop.amount) {
+                pay = prop.amount;
+            }
+            balances[_cp] += pay;
+            ProposerPaid(uint(event_codes.escrow_proposer_paid), tx.origin, _cp, _contract, _amount);
+            var remains = prop.amount - pay;
+            if (hasAmount(tx.origin, pay) {
+                balances[tx.origin] -= pay;
+            } else {
+                balances[tx.origin] += remains;
+                var device_contract = container_executor(_contract);
+                device_contract.cancel_container(pay);
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    // Either party can cancel the escrow at any time. This method should only be called by the
+    // container_executor contract.
+    function cancel_escrow(address _proposer, address _cp, address _contract, uint _amount) returns (bool rv) {
+        if (tx.origin != _proposer && tx.origin != _cp) return false;
+        var prop = escrow[_proposer].counter_parties[_cp].proposals[_contract];
+        if (tx.origin == _proposer) {
+            if (prop.amount != 0 && (prop.proposer_vote == false || prop.counter_party_vote == false)) {
+                balances[_proposer] += prop.amount;
+                CancelProposal(uint(event_codes.escrow_cancelled), _proposer, _cp, _contract);
+                delete escrow[_proposer].counter_parties[_cp].proposals[_contract];
+            } else {
+                if (prop.amount != 0 && _amount > 0) {
+                    var pay = _amount;
+                    if (_amount > prop.amount) {
+                        pay = prop.amount;
+                    }
+                    balances[_cp] += pay;
+                    ProposerPaid(uint(event_codes.escrow_proposer_paid), tx.origin, _cp, _contract, _amount);
+                    CancelProposal(uint(event_codes.escrow_cancelled), _proposer, _cp, _contract);
+                    var remains = prop.amount - pay;
+                    balances[tx.origin] += remains;
+                    delete escrow[_proposer].counter_parties[_cp].proposals[_contract];
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            if (tx.origin == _cp) {
+                prop.cancelled = true;
+                if (prop.amount != 0 && (prop.proposer_vote == false || prop.counter_party_vote == false)) {
+                    balances[_proposer] += prop.amount;
+                    CancelProposal(uint(event_codes.escrow_cancelled), _proposer, _cp, _contract);
+                    delete escrow[_proposer].counter_parties[_cp].proposals[_contract];
+                }
+            }
+        }
+        return true;
+    }
+
     // Both parties might want to look at the proposal. This is done in a way that only the involved parties
-    // can see the amount.
+    // can see the amount (or the system admin).
     function get_escrow_amount(address _proposer, address _cp, address _contract) constant returns (uint rv) {
-        if (tx.origin == _proposer || tx.origin == _cp) {
+        if (tx.origin == _proposer || tx.origin == _cp || tx.origin == minter) {
             var prop = escrow[_proposer].counter_parties[_cp].proposals[_contract];
             return prop.amount;
         } else {
@@ -188,42 +290,12 @@ contract token_bank {
         }
         return false;
     }
-    // When the proposer is satisfied that the proposal has been accepted, they vote to
-    // release the escrowed funds. The proposer can also unvote by passing false for the vote.
-    function proposer_vote(address _cp, address _contract, bool _vote) returns (bool rv) {
-        var prop = escrow[tx.origin].counter_parties[_cp].proposals[_contract];
-        if (prop.amount != 0) {
-            prop.proposer_vote = _vote;
-            close_escrow(tx.origin, _cp, _contract);
-            ProposerVerified(uint(event_codes.escrow_proposer_accepted), tx.origin, _cp, _contract);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    // When the counter party is satisfied with the proposal, they vote to accept
-    // the proposal. The counterparty can also unvote by passing false for the vote.
-    function counter_party_vote(address _proposer, address _contract, bool _vote) returns (bool rv) {
-        var prop = escrow[_proposer].counter_parties[tx.origin].proposals[_contract];
-        if (prop.amount != 0) {
-            prop.counter_party_vote = _vote;
-            close_escrow(_proposer, tx.origin, _contract);
-            CounterpartyAccepted(uint(event_codes.escrow_counterparty_accepted), _proposer, tx.origin, _contract);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    // Escrow is closed when both parties have agreed on the proposal. Funds are transferred
-    // to the counter party.
-    function close_escrow(address _proposer, address _cp, address _contract) internal {
+    function get_agreement_cancelled(address _proposer, address _cp, address _contract) constant returns (bool rv) {
         var prop = escrow[_proposer].counter_parties[_cp].proposals[_contract];
-        if (prop.amount != 0 && prop.proposer_vote && prop.counter_party_vote) {
-            balances[_cp] += escrow[_proposer].counter_parties[_cp].proposals[_contract].amount;
-            ProposalCompleted(uint(event_codes.escrow_closed), _proposer, _cp, _contract);
+        if (prop.amount != 0) {
+            return prop.cancelled;
         }
+        return false;
     }
 
     // Escrow proposal is cleared when the agreement ends.
