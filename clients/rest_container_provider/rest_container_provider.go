@@ -76,7 +76,7 @@ func main() {
                 start_timer := time.Now()
                 for bal == 0 {
                     delta := time.Now().Sub(start_timer).Seconds()
-                    if int(delta) < tx_lost_delay_toleration {
+                    if int(delta) < (tx_lost_delay_toleration*5) {
                         time.Sleep(5000*time.Millisecond)
                         pr := BankResponseWith{}
                         err = invoke_rest("GET", "bank?loans=true", nil, &pr)
@@ -113,7 +113,7 @@ func main() {
                 start_timer := time.Now()
                 for bal == 0 {
                     delta := time.Now().Sub(start_timer).Seconds()
-                    if int(delta) < tx_lost_delay_toleration {
+                    if int(delta) < (tx_lost_delay_toleration*5) {
                         time.Sleep(5000*time.Millisecond)
                         pr := BankResponseWith{}
                         err = invoke_rest("GET", "bank?loans=true", nil, &pr)
@@ -169,6 +169,7 @@ func main() {
                 dp.Address = device.Address
                 dp.AgreementId = agreement_id
                 dp.Whisper = whisper_account
+                fmt.Printf("Setting agreement %v for %v.\n",agreement_id,dp.Amount)
                 body,err := json.Marshal(dp)
                 if err != nil {
                     fmt.Printf("Error marshalling request to enter an agreement:%v\n",err)
@@ -185,7 +186,7 @@ func main() {
                 start_timer := time.Now()
                 for !agreement_set {
                     delta := time.Now().Sub(start_timer).Seconds()
-                    if int(delta) < tx_lost_delay_toleration {
+                    if int(delta) < (tx_lost_delay_toleration*5) {
                         time.Sleep(5000*time.Millisecond)
                         dr1 := DeviceResponse{}
                         err = invoke_rest("GET", "device?address="+device.Address, nil, &dr1)
