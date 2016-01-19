@@ -1,6 +1,6 @@
 contract token_bank {
     function create_escrow(address _cp, address _contract, uint _amount) returns (bool rv) {}
-    function cancel_escrow(address _proposer, address _cp, address _contract) returns (bool rv) {}
+    function cancel_escrow(address _proposer, address _cp, address _contract, uint _amount) returns (bool rv) {}
 }
 
 contract container_executor {

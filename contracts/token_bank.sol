@@ -58,7 +58,7 @@ contract token_bank {
         escrow_cancelled,               // potential agreement aborted
         escrow_counterparty_accepted,   // counterparty accepts escrow
         escrow_proposer_accepted,       // proposer accepts escrow
-        escrow_closed                   // escrow has closed
+        escrow_closed,                  // escrow has closed
         escrow_proposer_paid            // proposer paid
     }
 
@@ -206,7 +206,7 @@ contract token_bank {
     // agreement will be cancelled.
     function make_payment(address _cp, address _contract, uint _amount) returns (bool rv) {
         var prop = escrow[tx.origin].counter_parties[_cp].proposals[_contract];
-        if (prop.amount != 0 && prop.cancelled == false) {
+        if (prop.amount != 0 && prop.cancelled == false && prop.proposer_vote == true && prop.counter_party_vote == true) {
             var pay = _amount;
             if (_amount > prop.amount) {
                 pay = prop.amount;
@@ -214,7 +214,7 @@ contract token_bank {
             balances[_cp] += pay;
             ProposerPaid(uint(event_codes.escrow_proposer_paid), tx.origin, _cp, _contract, _amount);
             var remains = prop.amount - pay;
-            if (hasAmount(tx.origin, pay) {
+            if (hasAmount(tx.origin, pay)) {
                 balances[tx.origin] -= pay;
             } else {
                 balances[tx.origin] += remains;
