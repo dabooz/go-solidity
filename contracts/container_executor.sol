@@ -18,7 +18,7 @@ contract container_executor {
         container_cancelled_event_code
     }
 
-    event NewContract(uint indexed _eventcode, address indexed _self, address indexed _owner) anonymous;
+    event NewContract(uint indexed _eventcode, string indexed _name, address indexed _owner) anonymous;
     event NewContainer(uint indexed _eventcode, string indexed _id, address indexed _self, address indexed _owner, uint _amount) anonymous;
     event NewContainerError(uint indexed _eventcode, string indexed _id, address indexed _self, address indexed _owner, uint _amount) anonymous;
     event ContainerRejected(uint indexed _eventcode, string indexed _id, address indexed _self, address indexed _owner) anonymous;
@@ -107,7 +107,7 @@ contract container_executor {
     // Constructor and other infrastructure functions
     function container_executor() {
         owner = msg.sender;
-        NewContract(uint(event_codes.new_contract_event_code), this, owner);
+        NewContract(uint(event_codes.new_contract_event_code), "container_executor", owner);
     }
     function set_bank(address _bank) {
         if (owner == msg.sender) {

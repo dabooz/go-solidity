@@ -395,7 +395,7 @@ func main() {
     if len(rpcFilterResp.Result) > 0 {
         for ix, ev := range rpcFilterResp.Result {
             if ev.Topics[0] == dev_ev_new {
-                log.Printf("|%03d| New Device Contract\n",ix);
+                log.Printf("|%03d| New Device Contract %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ix,ev.Data);
             } else if ev.Topics[0] == dev_ev_prop {
                 log.Printf("|%03d| New Proposal %v\n",ix,ev.Topics[1]);
