@@ -401,6 +401,9 @@ func main() {
             } else if ev.Topics[0] == dev_ev_prop {
                 log.Printf("|%03d| New Proposal %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == dev_ev_perr {
+                log.Printf("|%03d| New Proposal Error %v\n",ix,ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
             } else if ev.Topics[0] == dev_ev_rej {
                 log.Printf("|%03d| Reject Proposal %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ix,ev.Data);
