@@ -3,7 +3,7 @@ package main
 import (
     "bytes"
     "encoding/json"
-    "fmt"
+    "log"
     //"io/ioutil"
     "math/rand"
     "net/http"
@@ -14,10 +14,10 @@ import (
     )
 
 func main() {
-    fmt.Println("Starting REST container provider client")
+    log.Println("Starting REST container provider client")
 
     if len(os.Args) < 4 {
-        fmt.Printf("...terminating, only %v parameters were passed.\n",len(os.Args))
+        log.Printf("...terminating, only %v parameters were passed.\n",len(os.Args))
         os.Exit(1)
     }
 
@@ -25,9 +25,9 @@ func main() {
     rand.Seed(time.Now().UnixNano())
 
     whisper_account := os.Args[1]
-    fmt.Printf("using whisper account %v\n",whisper_account)
+    log.Printf("using whisper account %v\n",whisper_account)
     container_owner := os.Args[2]
-    fmt.Printf("using account %v\n",container_owner)
+    log.Printf("using account %v\n",container_owner)
     tx_lost_delay_toleration,_ := strconv.Atoi(os.Args[3])
 
     // ---------------------- Start of one time init code ------------------------
@@ -49,11 +49,11 @@ func main() {
         lr := BankResponseWith{}
         err = invoke_rest("GET", "bank?loans=true", nil, &lr)
         if err != nil {
-            fmt.Printf("Error getting bank balance:%v\n",err)
+            log.Printf("Error getting bank balance:%v\n",err)
             os.Exit(1)
         }
         bal := lr.Tokens
-        fmt.Printf("Owner bacon balance is:%v\n",bal)
+        log.Printf("Owner bacon balance is:%v\n",bal)
 
         if bal == 0 {
             // Get a loan
@@ -62,12 +62,12 @@ func main() {
                 pr.Amount = 1000
                 body,err := json.Marshal(pr)
                 if err != nil {
-                    fmt.Printf("Error marshalling loan request:%v\n",err)
+                    log.Printf("Error marshalling loan request:%v\n",err)
                     os.Exit(1)
                 }
                 err = invoke_rest("PUT", "bank", body, nil)
                 if err != nil {
-                    fmt.Printf("Error obtaining a loan:%v\n",err)
+                    log.Printf("Error obtaining a loan:%v\n",err)
                     os.Exit(1)
                 }
 
@@ -81,12 +81,12 @@ func main() {
                         pr := BankResponseWith{}
                         err = invoke_rest("GET", "bank?loans=true", nil, &pr)
                         if err != nil {
-                            fmt.Printf("Error getting bank balance:%v\n",err)
+                            log.Printf("Error getting bank balance:%v\n",err)
                             os.Exit(1)
                         }
                         bal = pr.Tokens
                     } else {
-                        fmt.Printf("Loan never came through.\n")
+                        log.Printf("Loan never came through.\n")
                         os.Exit(1)
                     }
                 }
@@ -99,12 +99,12 @@ func main() {
                 pr.IncreaseLoan = true
                 body,err := json.Marshal(pr)
                 if err != nil {
-                    fmt.Printf("Error marshalling loan increase request:%v\n",err)
+                    log.Printf("Error marshalling loan increase request:%v\n",err)
                     os.Exit(1)
                 }
                 err = invoke_rest("POST", "bank", body, nil)
                 if err != nil {
-                    fmt.Printf("Error increasing a loan:%v\n",err)
+                    log.Printf("Error increasing a loan:%v\n",err)
                     os.Exit(1)
                 }
 
@@ -118,23 +118,24 @@ func main() {
                         pr := BankResponseWith{}
                         err = invoke_rest("GET", "bank?loans=true", nil, &pr)
                         if err != nil {
-                            fmt.Printf("Error getting bank balance:%v\n",err)
+                            log.Printf("Error getting bank balance:%v\n",err)
                             os.Exit(1)
                         }
                         bal = pr.Tokens
                     } else {
-                        fmt.Printf("Loan never came through.\n")
+                        log.Printf("Loan never came through.\n")
                         os.Exit(1)
                     }
                 } // increase loan
             } // bacon bal == 0
-            fmt.Printf("Owner bacon balance is:%v\n",bal)
+            log.Printf("Owner bacon balance is:%v\n",bal)
         }
 
+        log.Printf("Looking for devices to make agreements.\n")
         pr := RegistryResponse{}
         err = invoke_rest("GET", "registry", nil, &pr)
         if err != nil {
-            fmt.Printf("Error getting device list from registry:%v\n",err)
+            log.Printf("Error getting device list from registry:%v\n",err)
             os.Exit(1)
         }
 
@@ -154,13 +155,13 @@ func main() {
             dr := DeviceResponse{}
             err = invoke_rest("GET", "device?address="+device.Address, nil, &dr)
             if err != nil {
-                fmt.Printf("Error getting device info:%v\n",err)
+                log.Printf("Error getting device info:%v\n",err)
                 os.Exit(1)
             }
 
-            fmt.Printf("Checking to see if device is already running a container.\n")
+            log.Printf("Checking to see if device %v is already running a container.\n",device.Address)
             if dr.Agreement.AgreementId == "" {
-                fmt.Printf("Device is available. Tell it to run a container.\n")
+                log.Printf("Device is available. Tell it to run a container.\n")
 
                 // Try to enter agreement with the device
                 agreement_id := generate_agreement_id(32)
@@ -169,15 +170,15 @@ func main() {
                 dp.Address = device.Address
                 dp.AgreementId = agreement_id
                 dp.Whisper = whisper_account
-                fmt.Printf("Setting agreement %v for %v.\n",agreement_id,dp.Amount)
+                log.Printf("Setting agreement %v for %v.\n",agreement_id,dp.Amount)
                 body,err := json.Marshal(dp)
                 if err != nil {
-                    fmt.Printf("Error marshalling request to enter an agreement:%v\n",err)
+                    log.Printf("Error marshalling request to enter an agreement:%v\n",err)
                     os.Exit(1)
                 }
                 err = invoke_rest("PUT", "device", body, nil)
                 if err != nil {
-                    fmt.Printf("Error entering a new agreement:%v\n",err)
+                    log.Printf("Error entering a new agreement:%v\n",err)
                     os.Exit(1)
                 }
 
@@ -191,19 +192,19 @@ func main() {
                         dr1 := DeviceResponse{}
                         err = invoke_rest("GET", "device?address="+device.Address, nil, &dr1)
                         if err != nil {
-                            fmt.Printf("Error getting device info:%v\n",err)
+                            log.Printf("Error getting device info:%v\n",err)
                             os.Exit(1)
                         }
                         if dr1.Agreement.AgreementId == agreement_id {
-                            fmt.Printf("Device has our agreement Id.\n")
+                            log.Printf("Device has our agreement Id.\n")
                             agreement_set = true
                         }
                         if dr1.Agreement.AgreementId != agreement_id && dr1.Agreement.AgreementId != "" {
-                            fmt.Printf("Device has some other agreement id now.\n")
+                            log.Printf("Device has some other agreement id now.\n")
                             break
                         }
                     } else {
-                        fmt.Printf("Agreement was never picked up.\n")
+                        log.Printf("Agreement was never picked up.\n")
                         break
                     }
                 }
@@ -211,16 +212,16 @@ func main() {
                 // Our agreement ID reached the device contract, now we wait for the device to
                 // decide what to do; accept or cancel.
                 if agreement_set {
-                    fmt.Printf("Waiting for device to accept proposal, or cancel.\n")
+                    log.Printf("Waiting for device to accept proposal, or cancel.\n")
 
                     xr := BankResponseWith{}
                     err = invoke_rest("GET", "bank?loans=true", nil, &xr)
                     if err != nil {
-                        fmt.Printf("Error getting bank balance:%v\n",err)
+                        log.Printf("Error getting bank balance:%v\n",err)
                         os.Exit(1)
                     }
                     xbal := xr.Tokens
-                    fmt.Printf("Owner bacon balance is:%v\n",xbal)
+                    log.Printf("Owner bacon balance is:%v\n",xbal)
 
                     agreement_reached := false
                     cancelled := false
@@ -232,31 +233,31 @@ func main() {
                             time.Sleep(5000*time.Millisecond)
                             err = invoke_rest("GET", "device?address="+device.Address, nil, &dr1)
                             if err != nil {
-                                fmt.Printf("Error getting device info:%v\n",err)
+                                log.Printf("Error getting device info:%v\n",err)
                                 os.Exit(1)
                             }
                             if dr1.Agreement.Counterparty_accepted {
-                                fmt.Printf("Device has agreed.\n")
+                                log.Printf("Device has agreed.\n")
                                 agreement_reached = true
                             }
                             if dr1.Agreement.AgreementId == "" {
-                                fmt.Printf("Device has cancelled.\n")
+                                log.Printf("Device has cancelled.\n")
                                 cancelled = true
                             }
                             if dr1.Agreement.AgreementId != "" && dr1.Agreement.AgreementId != agreement_id {
-                                fmt.Printf("Device must have cancelled and entered some other agreement, it is no longer on our agreement_id.\n")
+                                log.Printf("Device must have cancelled and entered some other agreement, it is no longer on our agreement_id.\n")
                                 cancelled = true
                             }
                         } else {
-                            fmt.Printf("Timeout waiting for device to decide on agreement.\n")
+                            log.Printf("Timeout waiting for device to decide on agreement.\n")
                             break
                         }
                     } // looping for device acceptance
                     if cancelled {
-                        fmt.Printf("Device cancelled proposal.\n")
+                        log.Printf("Device cancelled proposal.\n")
                     } else if !agreement_reached && dr1.Agreement.AgreementId == agreement_id && dr1.Agreement.Counterparty != "" {
                         // We will cancel
-                        fmt.Printf("Device has neither accepted nor cancelled, we will cancel.\n")
+                        log.Printf("Device has neither accepted nor cancelled, we will cancel.\n")
                         cr := DevicePostRequest{}
                         cr.Action = "cancel"
                         cr.Device = device.Address
@@ -265,17 +266,17 @@ func main() {
                         cr.Amount = 10
                         body,err := json.Marshal(cr)
                         if err != nil {
-                            fmt.Printf("Error marshalling cancel request:%v\n",err)
+                            log.Printf("Error marshalling cancel request:%v\n",err)
                             os.Exit(1)
                         }
                         err = invoke_rest("POST", "device", body, nil)
                         if err != nil {
-                            fmt.Printf("Error cancelling agreement:%v\n",err)
+                            log.Printf("Error cancelling agreement:%v\n",err)
                             os.Exit(1)
                         }
                     } else if agreement_reached {
                         // counterparty has accepted, we will now accept
-                        fmt.Printf("Device has accepted, now its our turn.\n")
+                        log.Printf("Device has accepted, now its our turn.\n")
 
                         dpr := DevicePostRequest{}
                         dpr.Action = "proposer_vote"
@@ -284,21 +285,21 @@ func main() {
                         dpr.Counterparty = dr1.Agreement.Counterparty
                         body,err := json.Marshal(dpr)
                         if err != nil {
-                            fmt.Printf("Error marshalling accept request:%v\n",err)
+                            log.Printf("Error marshalling accept request:%v\n",err)
                             os.Exit(1)
                         }
                         err = invoke_rest("POST", "device", body, nil)
                         if err != nil {
-                            fmt.Printf("Error voting to accept agreement:%v\n",err)
+                            log.Printf("Error voting to accept agreement:%v\n",err)
                             os.Exit(1)
                         }
 
                         // Pick up the whisper messages from the client
                         if whisper_account != "0" {
-                            fmt.Printf("Handling whisper.\n")
+                            log.Printf("Handling whisper.\n")
                         }
 
-                        fmt.Printf("Make payments or cancel.\n")
+                        log.Printf("Make payments or cancel.\n")
                         done := false
                         for !done {
                             time.Sleep(5000*time.Millisecond)
@@ -311,15 +312,15 @@ func main() {
                                 dpr.Proposer = container_owner
                                 dpr.Counterparty = dr1.Agreement.Counterparty
                                 dpr.Amount = rand.Intn(2)+1
-                                fmt.Printf("Cancelling the agreement %v.\n",dpr.Amount)
+                                log.Printf("Cancelling the agreement %v.\n",dpr.Amount)
                                 body,err := json.Marshal(dpr)
                                 if err != nil {
-                                    fmt.Printf("Error marshalling cancel request:%v\n",err)
+                                    log.Printf("Error marshalling cancel request:%v\n",err)
                                     os.Exit(1)
                                 }
                                 err = invoke_rest("POST", "device", body, nil)
                                 if err != nil {
-                                    fmt.Printf("Error cancelling:%v\n",err)
+                                    log.Printf("Error cancelling:%v\n",err)
                                     os.Exit(1)
                                 }
                                 done = true
@@ -331,22 +332,22 @@ func main() {
                                 dpr.Proposer = container_owner
                                 dpr.Counterparty = dr1.Agreement.Counterparty
                                 dpr.Amount = rand.Intn(2)+1
-                                fmt.Printf("Paying the device %v.\n",dpr.Amount)
+                                log.Printf("Paying the device %v.\n",dpr.Amount)
                                 body,err := json.Marshal(dpr)
                                 if err != nil {
-                                    fmt.Printf("Error marshalling payment request:%v\n",err)
+                                    log.Printf("Error marshalling payment request:%v\n",err)
                                     os.Exit(1)
                                 }
                                 err = invoke_rest("POST", "device", body, nil)
                                 if err != nil {
-                                    fmt.Printf("Error making payment:%v\n",err)
+                                    log.Printf("Error making payment:%v\n",err)
                                     os.Exit(1)
                                 }
                             }
                         }
 
                     } else {
-                        fmt.Printf("Device must have cancelled.\n")
+                        log.Printf("Device must have cancelled.\n")
                     }
 
                 } // agreement Id was set onto device
@@ -361,7 +362,7 @@ func main() {
     //
     // ------------------- End of worker loop ------------------------------------
 
-    fmt.Println("Terminating REST container provider.")
+    log.Println("Terminating REST container provider.")
 }
 
 // ----------------- REST structs ---------------------------------------------
@@ -438,8 +439,8 @@ func invoke_rest(method string, url string, body []byte, outstruct interface{}) 
         err = json.NewDecoder(rawresp.Body).Decode(&outstruct)
     }
 
-    fmt.Println("response Status:", rawresp.Status)
-    // fmt.Println("response Headers:", rawresp.Header)
+    log.Println("response Status:", rawresp.Status)
+    // log.Println("response Headers:", rawresp.Header)
     return err
 }
 

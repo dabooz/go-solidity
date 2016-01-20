@@ -1,17 +1,17 @@
 package main
 
 import (
-    "fmt"
+    "log"
     "repo.hovitos.engineering/MTN/go-solidity/contract_api"
     "os"
     "time"
     )
 
 func main() {
-    fmt.Println("Starting device owner client")
+    log.Println("Starting device owner client")
 
     if len(os.Args) < 3 {
-        fmt.Printf("...terminating, only %v parameters were passed.\n",len(os.Args))
+        log.Printf("...terminating, only %v parameters were passed.\n",len(os.Args))
         os.Exit(1)
     }
 
@@ -24,7 +24,7 @@ func main() {
     if len(os.Args) > 3 {
         whisper_id = os.Args[3]
     }
-    fmt.Printf("Using whisper id:%v\n",whisper_id)
+    log.Printf("Using whisper id:%v\n",whisper_id)
 
     var new_container_event_code uint64 = 1
     //var execution_complete_event_code uint64 = 2
@@ -38,27 +38,27 @@ func main() {
     // Deploy the device contract
     sc := contract_api.SolidityContractFactory("container_executor")
     if _,err := sc.Deploy_contract(device_owner, ""); err != nil {
-        fmt.Printf("...terminating, could not deploy device contract: %v\n",err)
+        log.Printf("...terminating, could not deploy device contract: %v\n",err)
         os.Exit(1)
     }
-    fmt.Printf("container_executor deployed at %v\n",sc.Get_contract_address())
+    log.Printf("container_executor deployed at %v\n",sc.Get_contract_address())
 
     // Test to make sure the device contract is invokable
     var owner interface{}
     if owner,err = sc.Invoke_method("get_owner",nil); err != nil {
-        fmt.Printf("...terminating, could not invoke get_owner on device contract: %v\n",err)
+        log.Printf("...terminating, could not invoke get_owner on device contract: %v\n",err)
         os.Exit(1)
     }
     if owner.(string)[2:] != device_owner {
-        fmt.Printf("...terminating, wrong owner returned: %v should be %v\n",owner,device_owner)
+        log.Printf("...terminating, wrong owner returned: %v should be %v\n",owner,device_owner)
         os.Exit(1)
     }
-    fmt.Printf("Owner is %v\n",owner)
+    log.Printf("Owner is %v\n",owner)
 
     // Establish the directory contract
     dirc := contract_api.SolidityContractFactory("directory")
     if _,err := dirc.Load_contract(device_owner, ""); err != nil {
-        fmt.Printf("...terminating, could not load directory contract: %v\n",err)
+        log.Printf("...terminating, could not load directory contract: %v\n",err)
         os.Exit(1)
     }
     dirc.Set_contract_address(dir_contract)
@@ -68,41 +68,41 @@ func main() {
     p := make([]interface{},0,10)
     p = append(p,"token_bank")
     if tbaddr,err = dirc.Invoke_method("get_entry",p); err != nil {
-        fmt.Printf("...terminating, could not find token_bank in directory: %v\n",err)
+        log.Printf("...terminating, could not find token_bank in directory: %v\n",err)
         os.Exit(1)
     }
-    fmt.Printf("token_bank addr is %v\n",tbaddr)
+    log.Printf("token_bank addr is %v\n",tbaddr)
 
     // Connect the device contract to the token bank
     p = make([]interface{},0,10)
     p = append(p,tbaddr)
     if _,err := sc.Invoke_method("set_bank",p); err != nil {
-        fmt.Printf("...terminating, could not find token_bank in directory: %v\n",err)
+        log.Printf("...terminating, could not find token_bank in directory: %v\n",err)
         os.Exit(1)
     }
-    fmt.Printf("Device is connected to token bank\n")
+    log.Printf("Device is connected to token bank\n")
 
     var echo_bank interface{}
     if echo_bank,err = sc.Invoke_method("get_bank",nil); err != nil {
-        fmt.Printf("...terminating, could not invoke get_bank: %v\n",err)
+        log.Printf("...terminating, could not invoke get_bank: %v\n",err)
         os.Exit(1)
     }
-    fmt.Printf("Device using bank at %v.\n",echo_bank)
+    log.Printf("Device using bank at %v.\n",echo_bank)
 
     // Find the device registry contract
     var draddr interface{}
     p = make([]interface{},0,10)
     p = append(p,"device_registry")
     if draddr,err = dirc.Invoke_method("get_entry",p); err != nil {
-        fmt.Printf("...terminating, could not find device_registry in directory: %v\n",err)
+        log.Printf("...terminating, could not find device_registry in directory: %v\n",err)
         os.Exit(1)
     }
-    fmt.Printf("device_registry addr is %v\n",draddr)
+    log.Printf("device_registry addr is %v\n",draddr)
 
     // Establish the device_registry contract
     dr := contract_api.SolidityContractFactory("device_registry")
     if _,err := dr.Load_contract(device_owner, ""); err != nil {
-        fmt.Printf("...terminating, could not load device_registry contract: %v\n",err)
+        log.Printf("...terminating, could not load device_registry contract: %v\n",err)
         os.Exit(1)
     }
     dr.Set_contract_address(draddr.(string))
@@ -131,7 +131,7 @@ func main() {
     p2 = append(p2,"true")
     p = append(p,p2)
     if _,err := dr.Invoke_method("register",p); err != nil {
-        fmt.Printf("...terminating, could not register device: %v\n",err)
+        log.Printf("...terminating, could not register device: %v\n",err)
         os.Exit(1)
     }
 
@@ -140,15 +140,15 @@ func main() {
     p = make([]interface{},0,10)
     p = append(p,sc.Get_contract_address())
     if echo_device,err = dr.Invoke_method("get_description",p); err != nil {
-        fmt.Printf("...terminating, could not invoke get_description: %v\n",err)
+        log.Printf("...terminating, could not invoke get_description: %v\n",err)
         os.Exit(1)
     }
-    fmt.Printf("Device registered with %v.\n",echo_device)
+    log.Printf("Device registered with %v.\n",echo_device)
 
     // Establish the token_bank contract
     bank := contract_api.SolidityContractFactory("token_bank")
     if _,err := bank.Load_contract(device_owner, ""); err != nil {
-        fmt.Printf("...terminating, could not load token_bank contract: %v\n",err)
+        log.Printf("...terminating, could not load token_bank contract: %v\n",err)
         os.Exit(1)
     }
     bank.Set_contract_address(tbaddr.(string))
@@ -156,10 +156,10 @@ func main() {
     // Check device bacon balance
     var bal interface{}
     if bal,err = bank.Invoke_method("account_balance",nil); err != nil {
-        fmt.Printf("...terminating, could not get token balance: %v\n",err)
+        log.Printf("...terminating, could not get token balance: %v\n",err)
         os.Exit(1)
     }
-    fmt.Printf("Owner bacon balance is:%v\n",bal)
+    log.Printf("Owner bacon balance is:%v\n",bal)
 
     //
     // ------------------- End of one time initialization ------------------------
@@ -173,31 +173,31 @@ func main() {
     for i := 0; i < 5; i++ {
 
         var received_codes []uint64
-        fmt.Printf("Waiting for New Container assignment.\n")
+        log.Printf("Waiting for New Container assignment.\n")
         received_codes,_ = sc.Wait_for_event([]uint64{new_container_event_code},sc.Get_contract_address())
-        fmt.Printf("Received event codes: %v\n",received_codes)
+        log.Printf("Received event codes: %v\n",received_codes)
 
 
         var agreement_id interface{}
         if agreement_id,err = sc.Invoke_method("get_agreement_id",nil); err != nil {
-            fmt.Printf("...terminating, could not get agreement id: %v\n",err)
+            log.Printf("...terminating, could not get agreement id: %v\n",err)
             os.Exit(1)
         }
-        fmt.Printf("Agreement id :%v assigned.\n",agreement_id)
+        log.Printf("Agreement id :%v assigned.\n",agreement_id)
 
         var whisper interface{}
         if whisper,err = sc.Invoke_method("get_whisper",nil); err != nil {
-            fmt.Printf("...terminating, could not get whisper: %v\n",err)
+            log.Printf("...terminating, could not get whisper: %v\n",err)
             os.Exit(1)
         }
-        fmt.Printf("Using whisper:%v.\n",whisper)
+        log.Printf("Using whisper:%v.\n",whisper)
 
         var container_provider interface{}
         if container_provider,err = sc.Invoke_method("get_container_provider",nil); err != nil {
-            fmt.Printf("...terminating, could not get container provider: %v\n",err)
+            log.Printf("...terminating, could not get container provider: %v\n",err)
             os.Exit(1)
         }
-        fmt.Printf("Container provider :%v assigned.\n",container_provider)
+        log.Printf("Container provider :%v assigned.\n",container_provider)
 
         var proposal_amount interface{}
         p = make([]interface{},0,10)
@@ -205,16 +205,16 @@ func main() {
         p = append(p,device_owner)
         p = append(p,sc.Get_contract_address())
         if proposal_amount,err = bank.Invoke_method("get_escrow_amount",p); err != nil {
-            fmt.Printf("...terminating, could not get escrow amount: %v\n",err)
+            log.Printf("...terminating, could not get escrow amount: %v\n",err)
             os.Exit(1)
         }
-        fmt.Printf("Proposal amount: %v\n",proposal_amount)
+        log.Printf("Proposal amount: %v\n",proposal_amount)
 
         cancel := proposal_amount.(uint64)
         if cancel < 3 {
-            fmt.Printf("Deciding to reject this proposal.\n")
+            log.Printf("Deciding to reject this proposal.\n")
             if _,err = sc.Invoke_method("reject_container",nil); err != nil {
-                fmt.Printf("...terminating, could not cancel escrow: %v\n",err)
+                log.Printf("...terminating, could not cancel escrow: %v\n",err)
                 os.Exit(1)
             }
         } else {
@@ -224,14 +224,14 @@ func main() {
             p = append(p,sc.Get_contract_address())
             p = append(p,true)
             if _,err = bank.Invoke_method("counter_party_vote",p); err != nil {
-                fmt.Printf("...terminating, could not send counter party vote: %v\n",err)
+                log.Printf("...terminating, could not send counter party vote: %v\n",err)
                 os.Exit(1)
             }
 
-            fmt.Printf("Pretending to download and run the container.\n")
+            log.Printf("Pretending to download and run the container.\n")
             time.Sleep(10000*time.Millisecond)
 
-            fmt.Printf("Waiting for acceptance from proposer.\n")
+            log.Printf("Waiting for acceptance from proposer.\n")
 
             found_cancel := false
             agreement_reached := false
@@ -246,25 +246,25 @@ func main() {
                     p = append(p,device_owner)
                     p = append(p,sc.Get_contract_address())
                     if a_reached,err = bank.Invoke_method("get_proposer_accepted",p); err != nil {
-                        fmt.Printf("...terminating, error checking proposer vote: %v\n",err)
+                        log.Printf("...terminating, error checking proposer vote: %v\n",err)
                         os.Exit(1)
                     }
                     agreement_reached = a_reached.(bool)
                     if agreement_reached == true {
-                        fmt.Printf("Governor has accepted.\n")
+                        log.Printf("Governor has accepted.\n")
                     } else {
                         var container_provider interface{}
                         if container_provider,err = sc.Invoke_method("get_container_provider",nil); err != nil {
-                            fmt.Printf("...terminating, could not get container provider: %v\n",err)
+                            log.Printf("...terminating, could not get container provider: %v\n",err)
                             os.Exit(1)
                         }
                         if container_provider == "" {
-                            fmt.Printf("Governor has cancelled.\n")
+                            log.Printf("Governor has cancelled.\n")
                             found_cancel = true
                         }
                     }
                 } else {
-                    fmt.Printf("Timeout waiting for governor to agree.\n")
+                    log.Printf("Timeout waiting for governor to agree.\n")
                     break
                 }
             } // looping for governor acceptance
@@ -276,42 +276,42 @@ func main() {
                     time.Sleep(5000*time.Millisecond)
                     var container_provider interface{}
                     if container_provider,err = sc.Invoke_method("get_container_provider",nil); err != nil {
-                        fmt.Printf("...terminating, could not get container provider: %v\n",err)
+                        log.Printf("...terminating, could not get container provider: %v\n",err)
                         os.Exit(1)
                     }
                     if container_provider == "" {
-                        fmt.Printf("Governor has cancelled.\n")
+                        log.Printf("Governor has cancelled.\n")
                         cancel = true
                     }
 
                 } // looping for governor cancel
             } else {
-                fmt.Printf("Resetting device state.\n")
+                log.Printf("Resetting device state.\n")
                 if _,err = sc.Invoke_method("reject_container",nil); err != nil {
-                    fmt.Printf("...terminating, could not reject container: %v\n",err)
+                    log.Printf("...terminating, could not reject container: %v\n",err)
                     os.Exit(1)
                 }
-                fmt.Printf("Contract rejected.\n")
+                log.Printf("Contract rejected.\n")
             }
         }
         // Check bacon balance
         var bal interface{}
         if bal,err = bank.Invoke_method("account_balance",nil); err != nil {
-            fmt.Printf("...terminating, could not get token balance: %v\n",err)
+            log.Printf("...terminating, could not get token balance: %v\n",err)
             os.Exit(1)
         }
-        fmt.Printf("Owner bacon balance is:%v\n",bal)
+        log.Printf("Owner bacon balance is:%v\n",bal)
 
     }
 
-    fmt.Printf("Deregistering the device\n")
+    log.Printf("Deregistering the device\n")
     p = make([]interface{},0,10)
     p = append(p,sc.Get_contract_address())
     if _,err := dr.Invoke_method("deregister",p); err != nil {
-        fmt.Printf("...terminating, could not deregister device: %v\n",err)
+        log.Printf("...terminating, could not deregister device: %v\n",err)
         os.Exit(1)
     }
 
-    fmt.Println("Terminating client")
+    log.Println("Terminating client")
 }
 
