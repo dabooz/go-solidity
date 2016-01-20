@@ -357,11 +357,10 @@ func main() {
     }
 
     // These event string correspond to event codes form the container_executor contract
-    dev_ev_new  := "0x0000000000000000000000000000000000000000000000000000000000000000"
-    dev_ev_prop := "0x0000000000000000000000000000000000000000000000000000000000000001"
-    dev_ev_perr := "0x0000000000000000000000000000000000000000000000000000000000000002"
-    dev_ev_rej  := "0x0000000000000000000000000000000000000000000000000000000000000003"
-    dev_ev_can  := "0x0000000000000000000000000000000000000000000000000000000000000004"
+    dev_ev_prop := "0x0000000000000000000000000000000000000000000000000000000000000000"
+    dev_ev_perr := "0x0000000000000000000000000000000000000000000000000000000000000001"
+    dev_ev_rej  := "0x0000000000000000000000000000000000000000000000000000000000000002"
+    dev_ev_can  := "0x0000000000000000000000000000000000000000000000000000000000000003"
 
     log.Printf("Dumping blockchain event data for contract %v.\n",sc.Get_contract_address())
     result, out, err := "", "", error(nil)
@@ -395,10 +394,7 @@ func main() {
 
     if len(rpcFilterResp.Result) > 0 {
         for ix, ev := range rpcFilterResp.Result {
-            if ev.Topics[0] == dev_ev_new {
-                log.Printf("|%03d| New Device Contract %v\n",ix,ev.Topics[1]);
-                log.Printf("Data: %v\n\n",ix,ev.Data);
-            } else if ev.Topics[0] == dev_ev_prop {
+            if ev.Topics[0] == dev_ev_prop {
                 log.Printf("|%03d| New Proposal %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ix,ev.Data);
             } else if ev.Topics[0] == dev_ev_perr {
