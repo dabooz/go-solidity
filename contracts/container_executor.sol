@@ -10,15 +10,19 @@ contract container_executor {
     address container_provider;
     token_bank piggy_bank;
 
-    uint constant new_container_event_code = 1;
-    uint constant execution_complete_event_code = 2;
-    uint constant container_rejected_event_code = 3;
-    uint constant container_cancelled_event_code = 4;
+    enum event_codes {
+        new_contract_event_code,
+        new_container_event_code,
+        new_container_error_event_code,
+        container_rejected_event_code,
+        container_cancelled_event_code
+    }
 
-    event NewContainer(uint indexed _eventcode, string _id, address indexed _self);
-    event ExecutionComplete(uint indexed _eventcode, string _id, address indexed _self);
-    event ContainerRejected(uint indexed _eventcode, string _id, address indexed _self);
-    event ContainerCancelled(uint indexed _eventcode, string _id, address indexed _self);
+    event NewContract(uint indexed _eventcode, address indexed _self, address indexed _owner) anonymous;
+    event NewContainer(uint indexed _eventcode, string indexed _id, address indexed _self, address indexed _owner, uint _amount) anonymous;
+    event NewContainerError(uint indexed _eventcode, string indexed _id, address indexed _self, address indexed _owner, uint _amount) anonymous;
+    event ContainerRejected(uint indexed _eventcode, string indexed _id, address indexed _self, address indexed _owner) anonymous;
+    event ContainerCancelled(uint indexed _eventcode, string indexed _id, address indexed _self, address indexed _owner, uint _amount) anonymous;
 
     // This function is used by governors (Glensung, IoT providers, etc) to make proposals to
     // device owners for running containers. This function escrows the offered funds in the
@@ -33,9 +37,10 @@ contract container_executor {
                 whisper = _whisperId;
                 agreement = _agreementId;
                 container_provider = tx.origin;
-                NewContainer(new_container_event_code,_agreementId,this);
+                NewContainer(uint(event_codes.new_container_event_code), _agreementId, this, owner, _amount);
                 return true;
             } else {
+                NewContainerError(uint(event_codes.new_container_error_event_code), _agreementId, this, owner, _amount);
                 return false;
             }
         } else {
@@ -49,7 +54,7 @@ contract container_executor {
     function reject_container() returns (bool r) {
         if (tx.origin == owner) {
             piggy_bank.cancel_escrow(container_provider, tx.origin, this, 0);
-            ContainerRejected(container_rejected_event_code,agreement,this);
+            ContainerRejected(uint(event_codes.container_rejected_event_code), agreement, this, owner);
             clear_container();
             return true;
         } else {
@@ -63,7 +68,7 @@ contract container_executor {
     function cancel_container(uint _amount) returns (bool r) {
         if (container_provider != address(0) && tx.origin == container_provider) {
             piggy_bank.cancel_escrow(tx.origin, owner, this, _amount);
-            ContainerCancelled(container_rejected_event_code,agreement,this);
+            ContainerCancelled(uint(event_codes.container_rejected_event_code), agreement, this, owner, _amount);
             clear_container();
             return true;
         } else {
@@ -78,7 +83,7 @@ contract container_executor {
         agreement = "";
     }
 
-    // This function is used to determine agreement status. Is there an agreement in place
+    // This function is used to determine agreement status. Is there an agreement in place (or inprogress)
     // with another party or not.
     function in_contract() constant returns (bool r) {
         if (container_provider == address(0)) {
@@ -102,6 +107,7 @@ contract container_executor {
     // Constructor and other infrastructure functions
     function container_executor() {
         owner = msg.sender;
+        NewContract(uint(event_codes.new_contract_event_code), this, owner);
     }
     function set_bank(address _bank) {
         if (owner == msg.sender) {

@@ -356,7 +356,13 @@ func main() {
         } `json:"error"`
     }
 
-    log.Printf("Dumping blockchain event data.\n")
+    // These event string correspond to event codes form the container_executor contract
+    dev_ev_new  := "0x0000000000000000000000000000000000000000000000000000000000000000"
+    dev_ev_prop := "0x0000000000000000000000000000000000000000000000000000000000000001"
+    dev_ev_rej  := "0x0000000000000000000000000000000000000000000000000000000000000002"
+    dev_ev_can  := "0x0000000000000000000000000000000000000000000000000000000000000003"
+
+    log.Printf("Dumping blockchain event data for contract %v.\n",sc.Get_contract_address())
     result, out, err := "", "", error(nil)
     var rpcResp *rpcResponse = new(rpcResponse)
 
@@ -386,10 +392,24 @@ func main() {
         log.Printf("Error calling getFilterLogs: %v.\n",err)
     }
 
-    log.Printf("Result:%v\n",rpcFilterResp.Result)
     if len(rpcFilterResp.Result) > 0 {
-        for _, ev := range rpcFilterResp.Result {
-            log.Printf("event:%v\n",ev)
+        for ix, ev := range rpcFilterResp.Result {
+            if ev.Topics[0] == dev_ev_new {
+                log.Printf("|%03d| New Device Contract\n",ix);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == dev_ev_prop {
+                log.Printf("|%03d| New Proposal %v\n",ix,ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == dev_ev_rej {
+                log.Printf("|%03d| Reject Proposal %v\n",ix,ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == dev_ev_can {
+                log.Printf("|%03d| Cancel Proposal %v\n",ix,ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else {
+                log.Printf("|%03d| Unknown event code in first topic slot.\n")
+                log.Printf("Raw log entry:\n%v\n\n",ev)
+            }
         }
     }
 
