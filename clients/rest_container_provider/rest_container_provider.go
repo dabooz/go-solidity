@@ -76,7 +76,7 @@ func main() {
                 start_timer := time.Now()
                 for bal == 0 {
                     delta := time.Now().Sub(start_timer).Seconds()
-                    if int(delta) < (tx_lost_delay_toleration*5) {
+                    if int(delta) < (tx_lost_delay_toleration*2) {
                         time.Sleep(5000*time.Millisecond)
                         pr := BankResponseWith{}
                         err = invoke_rest("GET", "bank?loans=true", nil, &pr)
@@ -113,7 +113,7 @@ func main() {
                 start_timer := time.Now()
                 for bal == 0 {
                     delta := time.Now().Sub(start_timer).Seconds()
-                    if int(delta) < (tx_lost_delay_toleration*5) {
+                    if int(delta) < (tx_lost_delay_toleration*2) {
                         time.Sleep(5000*time.Millisecond)
                         pr := BankResponseWith{}
                         err = invoke_rest("GET", "bank?loans=true", nil, &pr)
@@ -187,8 +187,7 @@ func main() {
                 start_timer := time.Now()
                 for !agreement_set {
                     delta := time.Now().Sub(start_timer).Seconds()
-                    if int(delta) < (tx_lost_delay_toleration*5) {
-                        time.Sleep(5000*time.Millisecond)
+                    if int(delta) < (tx_lost_delay_toleration*2) {
                         dr1 := DeviceResponse{}
                         err = invoke_rest("GET", "device?address="+device.Address, nil, &dr1)
                         if err != nil {
@@ -198,11 +197,13 @@ func main() {
                         if dr1.Agreement.AgreementId == agreement_id {
                             log.Printf("Device has our agreement Id.\n")
                             agreement_set = true
+                            break
                         }
                         if dr1.Agreement.AgreementId != agreement_id && dr1.Agreement.AgreementId != "" {
                             log.Printf("Device has some other agreement id now.\n")
                             break
                         }
+                        time.Sleep(5000*time.Millisecond)
                     } else {
                         log.Printf("Agreement was never picked up.\n")
                         break
@@ -229,7 +230,7 @@ func main() {
                     start_timer := time.Now()
                     for !agreement_reached && !cancelled {
                         delta := time.Now().Sub(start_timer).Seconds()
-                        if int(delta) < (tx_lost_delay_toleration*5) {
+                        if int(delta) < (tx_lost_delay_toleration*2) {
                             time.Sleep(5000*time.Millisecond)
                             err = invoke_rest("GET", "device?address="+device.Address, nil, &dr1)
                             if err != nil {
