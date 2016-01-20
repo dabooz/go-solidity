@@ -376,14 +376,17 @@ func main() {
     }
 
     var rpcFilterResp *rpcGetFilterChangesResponse = new(rpcGetFilterChangesResponse)
-    if out, err = sc.Call_rpc_api("eth_getFilterChanges", result); err == nil {
+    if out, err = sc.Call_rpc_api("eth_getFilterLogs", result); err == nil {
         if err = json.Unmarshal([]byte(out), rpcFilterResp); err == nil {
             if rpcFilterResp.Error.Message != "" {
                 log.Printf("eth_getFilterChanges returned an error: %v.\n", rpcFilterResp.Error.Message)
             }
         }
+    } else {
+        log.Printf("Error calling getFilterLogs: %v.\n",err)
     }
 
+    log.Printf("Result:%v\n",rpcFilterResp.Result)
     if len(rpcFilterResp.Result) > 0 {
         for _, ev := range rpcFilterResp.Result {
             log.Printf("event:%v\n",ev)
