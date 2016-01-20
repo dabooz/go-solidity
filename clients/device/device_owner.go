@@ -253,14 +253,12 @@ func main() {
                     if agreement_reached == true {
                         log.Printf("Governor has accepted.\n")
                     } else {
-                        var cp interface{}
-                        if cp,err = sc.Invoke_method("get_container_provider",nil); err != nil {
+                        var container_provider interface{}
+                        if container_provider,err = sc.Invoke_method("get_container_provider",nil); err != nil {
                             log.Printf("...terminating, could not get container provider: %v\n",err)
                             os.Exit(1)
                         }
-                        container_provider = cp.(string)
-                        log.Printf("Get container results cp %v and asserted %v.\n",cp,container_provider)
-                        if container_provider == ""  {
+                        if container_provider == "0x0000000000000000000000000000000000000000"  {
                             log.Printf("Governor has cancelled instead of accepting.\n")
                             found_cancel = true
                         }
@@ -276,14 +274,12 @@ func main() {
                 cancel := false
                 for !cancel {
                     time.Sleep(5000*time.Millisecond)
-                    var cp interface{}
-                    if cp,err = sc.Invoke_method("get_container_provider",nil); err != nil {
+                    var container_provider interface{}
+                    if container_provider,err = sc.Invoke_method("get_container_provider",nil); err != nil {
                         log.Printf("...terminating, could not get container provider: %v\n",err)
                         os.Exit(1)
                     }
-                    container_provider = cp.(string)
-                    log.Printf("Get container results cp %v and asserted %v.\n",cp,container_provider)
-                    if container_provider == "" {
+                    if container_provider == "0x0000000000000000000000000000000000000000" {
                         log.Printf("Governor has cancelled.\n")
                         cancel = true
                     }
