@@ -170,7 +170,7 @@ func main() {
     // code.
     //
 
-    for i := 0; i < 5; i++ {
+    for i := 0; i < 10; i++ {
 
         var received_codes []uint64
         log.Printf("Waiting for New Container assignment.\n")
