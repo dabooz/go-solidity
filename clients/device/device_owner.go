@@ -1,6 +1,7 @@
 package main
 
 import (
+    "encoding/json"
     "log"
     "repo.hovitos.engineering/MTN/go-solidity/contract_api"
     "os"
@@ -26,8 +27,8 @@ func main() {
     }
     log.Printf("Using whisper id:%v\n",whisper_id)
 
-    var new_container_event_code uint64 = 1
-    //var execution_complete_event_code uint64 = 2
+    // var new_container_event_code uint64 = 1
+    // var execution_complete_event_code uint64 = 2
 
     // var escrow_cancelled_event_code uint64 = 6
     // var proposer_accepted_event_code uint64 = 8
@@ -170,13 +171,23 @@ func main() {
     // code.
     //
 
-    for i := 0; i < 10; i++ {
+    for i := 0; i < 1; i++ {
 
-        var received_codes []uint64
         log.Printf("Waiting for New Container assignment.\n")
-        received_codes,_ = sc.Wait_for_event([]uint64{new_container_event_code},sc.Get_contract_address())
-        log.Printf("Received event codes: %v\n",received_codes)
 
+        agreement_set := false
+        for !agreement_set {
+            time.Sleep(5000*time.Millisecond)
+            var container_provider interface{}
+            if container_provider,err = sc.Invoke_method("get_container_provider",nil); err != nil {
+                log.Printf("...terminating, could not get container provider: %v\n",err)
+                os.Exit(1)
+            }
+            if container_provider != "0x0000000000000000000000000000000000000000"  {
+                log.Printf("Proposal has been made.\n")
+                agreement_set = true
+            }
+        } // looping for proposal
 
         var agreement_id interface{}
         if agreement_id,err = sc.Invoke_method("get_agreement_id",nil); err != nil {
@@ -310,6 +321,73 @@ func main() {
     if _,err := dr.Invoke_method("deregister",p); err != nil {
         log.Printf("...terminating, could not deregister device: %v\n",err)
         os.Exit(1)
+    }
+
+    // Find all events related to this test in the blockchain and dump them into the output.
+
+    type rpcResponse struct {
+        Id      string      `json:"id"`
+        Version string      `json:"jsonrpc"`
+        Result  interface{} `json:"result"`
+        Error   struct {
+            Code    int    `json:"code"`
+            Message string `json:"message"`
+        } `json:"error"`
+    }
+
+    type rpcFilterChanges struct {
+        LogIndex         string   `json:"logIndex"`
+        TransactionHash  string   `json:"transactionHash"`
+        TransactionIndex string   `json:"transactionIndex"`
+        BlockNumber      string   `json:"blockNumber"`
+        BlockHash        string   `json:"blockHash"`
+        Address          string   `json:"address"`
+        Data             string   `json:"data"`
+        Topics           []string `json:"topics"`
+    }
+
+    type rpcGetFilterChangesResponse struct {
+        Id      string             `json:"id"`
+        Version string             `json:"jsonrpc"`
+        Result  []rpcFilterChanges `json:"result"`
+        Error   struct {
+            Code    int    `json:"code"`
+            Message string `json:"message"`
+        } `json:"error"`
+    }
+
+    log.Printf("Dumping blockchain event data.\n")
+    result, out, err := "", "", error(nil)
+    var rpcResp *rpcResponse = new(rpcResponse)
+
+    params := make(map[string]string)
+    params["address"] = sc.Get_contract_address()
+    params["fromBlock"] = "0x1"
+
+    if out, err = sc.Call_rpc_api("eth_newFilter", params); err == nil {
+        if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
+            if rpcResp.Error.Message != "" {
+                log.Printf("eth_newFilter returned an error: %v.\n", rpcResp.Error.Message)
+            } else {
+                result = rpcResp.Result.(string)
+                log.Printf("Event id: %v.\n",result)
+            }
+        }
+    }
+
+    var rpcFilterResp *rpcGetFilterChangesResponse = new(rpcGetFilterChangesResponse)
+    if out, err = sc.Call_rpc_api("eth_getFilterChanges", result); err == nil {
+        if err = json.Unmarshal([]byte(out), rpcFilterResp); err == nil {
+            if rpcFilterResp.Error.Message != "" {
+                log.Printf("eth_getFilterChanges returned an error: %v.\n", rpcFilterResp.Error.Message)
+            }
+        }
+    }
+
+    if len(rpcFilterResp.Result) > 0 {
+        for _, ev := range rpcFilterResp.Result {
+            log.Printf("event:%v\n",ev)
+        }
     }
 
     log.Println("Terminating client")
