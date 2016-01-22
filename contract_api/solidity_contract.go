@@ -492,7 +492,9 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 	the_params[0] = params
 	body["params"] = the_params
 	jsonBytes, err = json.Marshal(body)
-	//self.logger.Debug("Debug",string(jsonBytes))
+	if method == "web3_sha3" {
+		fmt.Printf("*** json for web3: %v\n",string(jsonBytes))
+	}
 	if err == nil {
 		req, err = http.NewRequest("POST", self.rpcURL, bytes.NewBuffer(jsonBytes))
 		if err == nil {
@@ -517,7 +519,11 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 	}
 
 	if err != nil {
+		fmt.Printf("*** Error %v\n", err.Error())
 		self.logger.Debug("Error", err.Error())
+	}
+	if method == "web3_sha3" {
+		fmt.Printf("*** out for web3: %v\n",out)
 	}
 	self.logger.Debug("Exit ", out)
 	return out, err
