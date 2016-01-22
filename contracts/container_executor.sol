@@ -66,7 +66,7 @@ contract container_executor {
     function cancel_container(uint _amount) returns (bool r) {
         if (container_provider != address(0) && tx.origin == container_provider) {
             piggy_bank.cancel_escrow(tx.origin, owner, this, _amount);
-            ContainerCancelled(uint(event_codes.container_rejected_event_code), agreement, this, owner, _amount);
+            ContainerCancelled(uint(event_codes.container_cancelled_event_code), agreement, this, owner, _amount);
             clear_container();
             return true;
         } else {
