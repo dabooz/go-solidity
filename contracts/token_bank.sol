@@ -58,21 +58,21 @@ contract token_bank {
         escrow_cancelled,               // potential agreement aborted
         escrow_counterparty_accepted,   // counterparty accepts escrow
         escrow_proposer_accepted,       // proposer accepts escrow
-        escrow_closed,                  // escrow has closed
-        escrow_proposer_paid            // proposer paid
+        escrow_proposer_paid,           // proposer paid device owner
+        escrow_refunded                 // escrow refunded to proposer
     }
 
-    event Mint(uint indexed _event_code, uint _value);
-    event ObtainLoan(uint indexed _event_code, address _from, uint _value);
-    event ExtendLoan(uint indexed _event_code, address _from, uint _value);
-    event RepayLoan(uint indexed _event_code, address _from, uint _value);
-    event Transfer(uint indexed _event_code, address _from, address _to, uint _value);
-    event NewProposal(uint indexed _event_code, address _from, address _to, address indexed _contract);
-    event CancelProposal(uint indexed _event_code, address _from, address _to, address indexed _contract);
-    event CounterpartyAccepted(uint indexed _event_code, address _from, address _to, address indexed _contract);
-    event ProposerVerified(uint indexed _event_code, address _from, address _to, address indexed _contract);
-    event ProposalCompleted(uint indexed _event_code, address _from, address _to, address indexed _contract);
-    event ProposerPaid(uint indexed _event_code, address _from, address _to, address indexed _contract, uint _value);
+    event Mint(uint indexed _event_code, address indexed owner, address indexed _from, uint indexed_value) anonymous;
+    event ObtainLoan(uint indexed _event_code, address indexed _from, uint indexed _value) anonymous;
+    event ExtendLoan(uint indexed _event_code, address indexed _from, uint indexed _value) anonymous;
+    event RepayLoan(uint indexed _event_code, address indexed _from, uint indexed _value) anonymous;
+    event Transfer(uint indexed _event_code, address indexed _from, address indexed _to, uint indexed _value) anonymous;
+    event NewProposal(uint indexed _event_code, address indexed _from, address indexed _to, address indexed _contract, uint _amount) anonymous;
+    event CancelProposal(uint indexed _event_code, address indexed _from, address indexed _to, address indexed _contract) anonymous;
+    event CounterpartyAccepted(uint indexed _event_code, address indexed _from, address indexed _to, address indexed _contract) anonymous;
+    event ProposerVerified(uint indexed _event_code, address indexed _from, address indexed _to, address indexed _contract) anonymous;
+    event ProposerPaid(uint indexed _event_code, address indexed _from, address indexed _to, address indexed _contract, uint _value) anonymous;
+    event EscrowRefund(uint indexed _event_code, address indexed _from, address indexed _to, address indexed _contract, uint _value) anonymous;
 
     // Constructor, runs when this contract is deployed (aka instantiated)
     function token_bank() {
@@ -163,7 +163,7 @@ contract token_bank {
                                                                                         cancelled:false,
                                                                                         amount:_amount});
                 balances[tx.origin] -= _amount;
-                NewProposal(uint(event_codes.escrow_created), tx.origin, _cp, _contract);
+                NewProposal(uint(event_codes.escrow_created), tx.origin, _cp, _contract, _amount);
                 return true;
             } else {
                 return false;
@@ -236,6 +236,7 @@ contract token_bank {
             if (prop.amount != 0 && (prop.proposer_vote == false || prop.counter_party_vote == false)) {
                 balances[_proposer] += prop.amount;
                 CancelProposal(uint(event_codes.escrow_cancelled), _proposer, _cp, _contract);
+                EscrowRefund(uint(event_codes.escrow_refunded), _proposer, _cp, _contract, prop.amount);
                 delete escrow[_proposer].counter_parties[_cp].proposals[_contract];
             } else {
                 if (prop.amount != 0 && _amount > 0) {
@@ -244,10 +245,11 @@ contract token_bank {
                         pay = prop.amount;
                     }
                     balances[_cp] += pay;
-                    ProposerPaid(uint(event_codes.escrow_proposer_paid), tx.origin, _cp, _contract, _amount);
+                    ProposerPaid(uint(event_codes.escrow_proposer_paid), _proposer, _cp, _contract, pay);
                     CancelProposal(uint(event_codes.escrow_cancelled), _proposer, _cp, _contract);
                     var remains = prop.amount - pay;
                     balances[tx.origin] += remains;
+                    EscrowRefund(uint(event_codes.escrow_refunded), _proposer, _cp, _contract, remains);
                     delete escrow[_proposer].counter_parties[_cp].proposals[_contract];
                 } else {
                     return false;
@@ -258,6 +260,7 @@ contract token_bank {
                 prop.cancelled = true;
                 if (prop.amount != 0 && (prop.proposer_vote == false || prop.counter_party_vote == false)) {
                     balances[_proposer] += prop.amount;
+                    EscrowRefund(uint(event_codes.escrow_refunded), _proposer, _cp, _contract, prop.amount);
                     CancelProposal(uint(event_codes.escrow_cancelled), _proposer, _cp, _contract);
                     delete escrow[_proposer].counter_parties[_cp].proposals[_contract];
                 }
@@ -298,13 +301,6 @@ contract token_bank {
         return false;
     }
 
-    // Escrow proposal is cleared when the agreement ends.
-    function clear_escrow(address _proposer, address _cp, address _contract) {
-        if (tx.origin == _cp) {
-            delete escrow[_proposer].counter_parties[_cp].proposals[_contract];
-        }
-    }
-
     // Only the contract owner or a contract owned by the same entity can
     // create currency
     function mint(uint _amount) {
@@ -312,7 +308,7 @@ contract token_bank {
         address sender_owner = sender.get_owner();
         if (tx.origin == minter || sender_owner == minter) {
             total_currency += _amount;
-            Mint(uint(event_codes.mint), _amount);
+            Mint(uint(event_codes.mint), minter, sender_owner, _amount);
         }
     }
 
@@ -335,4 +331,3 @@ contract token_bank {
         if (msg.sender == minter) suicide(minter);
     }
 }
-

@@ -356,7 +356,7 @@ func main() {
         } `json:"error"`
     }
 
-    // These event string correspond to event codes form the container_executor contract
+    // These event string correspond to event codes from the container_executor contract
     dev_ev_prop := "0x0000000000000000000000000000000000000000000000000000000000000000"
     dev_ev_perr := "0x0000000000000000000000000000000000000000000000000000000000000001"
     dev_ev_rej  := "0x0000000000000000000000000000000000000000000000000000000000000002"
@@ -376,7 +376,7 @@ func main() {
                 log.Printf("eth_newFilter returned an error: %v.\n", rpcResp.Error.Message)
             } else {
                 result = rpcResp.Result.(string)
-                log.Printf("Event id: %v.\n",result)
+                // log.Printf("Event id: %v.\n",result)
             }
         }
     }
@@ -412,6 +412,94 @@ func main() {
             }
         }
     }
+
+    // These event string correspond to event codes from the token_bank contract
+
+    b_ev_mint                           := "0x0000000000000000000000000000000000000000000000000000000000000000"
+    b_ev_loan_created                   := "0x0000000000000000000000000000000000000000000000000000000000000001"
+    b_ev_loan_extended                  := "0x0000000000000000000000000000000000000000000000000000000000000002"
+    b_ev_loan_repaid                    := "0x0000000000000000000000000000000000000000000000000000000000000003"
+    b_ev_transfer                       := "0x0000000000000000000000000000000000000000000000000000000000000004"
+    b_ev_escrow_created                 := "0x0000000000000000000000000000000000000000000000000000000000000005"
+    b_ev_escrow_cancelled               := "0x0000000000000000000000000000000000000000000000000000000000000006"
+    b_ev_escrow_counterparty_accepted   := "0x0000000000000000000000000000000000000000000000000000000000000007"
+    b_ev_escrow_proposer_accepted       := "0x0000000000000000000000000000000000000000000000000000000000000008"
+    b_ev_escrow_proposer_paid           := "0x0000000000000000000000000000000000000000000000000000000000000009"
+    b_ev_escrow_refunded                := "0x000000000000000000000000000000000000000000000000000000000000000a"
+
+
+    log.Printf("Dumping blockchain event data for bank transactions involving this owner %v.\n",device_owner)
+
+    fparams := make(map[string]interface{})
+    fparams["address"] = bank.Get_contract_address()
+    topics := make([]string,0,10)
+    topics = append(topics,device_owner)
+    fparams["topics"] = topics
+    fparams["fromBlock"] = "0x1"
+
+    if out, err = sc.Call_rpc_api("eth_newFilter", fparams); err == nil {
+        if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
+            if rpcResp.Error.Message != "" {
+                log.Printf("eth_newFilter returned an error: %v.\n", rpcResp.Error.Message)
+            } else {
+                result = rpcResp.Result.(string)
+                // log.Printf("Event id: %v.\n",result)
+            }
+        }
+    }
+
+    if out, err = sc.Call_rpc_api("eth_getFilterLogs", result); err == nil {
+        if err = json.Unmarshal([]byte(out), rpcFilterResp); err == nil {
+            if rpcFilterResp.Error.Message != "" {
+                log.Printf("eth_getFilterChanges returned an error: %v.\n", rpcFilterResp.Error.Message)
+            }
+        }
+    } else {
+        log.Printf("Error calling getFilterLogs: %v.\n",err)
+    }
+
+    if len(rpcFilterResp.Result) > 0 {
+        for ix, ev := range rpcFilterResp.Result {
+            if ev.Topics[0] == b_ev_mint {
+                log.Printf("|%03d| Mint %v tokens for %v\n",ix,ev.Topics[3],ev.Topics[2]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == b_ev_loan_created {
+                log.Printf("|%03d| New Loan %v tokens for %v\n",ix,ev.Topics[2],ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == b_ev_loan_extended {
+                log.Printf("|%03d| Loan increased %v tokens for %v\n",ix,ev.Topics[2],ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == b_ev_loan_repaid {
+                log.Printf("|%03d| Loan repaid %v tokens for %v\n",ix,ev.Topics[2],ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == b_ev_transfer {
+                log.Printf("|%03d| Transfer %v tokens from %v to %v\n",ix,ev.Topics[3],ev.Topics[1],ev.Topics[2]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == b_ev_escrow_created {
+                log.Printf("|%03d| Create Escrow %v tokens by %v\n",ix,ev.Data,ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == b_ev_escrow_cancelled {
+                log.Printf("|%03d| Cancel Escrow\n",ix);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == b_ev_escrow_counterparty_accepted {
+                log.Printf("|%03d| CounterParty Acceptance with %v\n",ix,ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == b_ev_escrow_proposer_accepted {
+                log.Printf("|%03d| Proposer Acceptance from %v\n",ix,ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == b_ev_escrow_proposer_paid {
+                log.Printf("|%03d| Received %v tokens from %v\n",ix,ev.Data,ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else if ev.Topics[0] == b_ev_escrow_refunded {
+                log.Printf("|%03d| Refunded %v escrowed tokens to %v\n",ix,ev.Data,ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ix,ev.Data);
+            } else {
+                log.Printf("|%03d| Unknown event code in first topic slot.\n")
+                log.Printf("Raw log entry:\n%v\n\n",ev)
+            }
+        }
+    }
+
 
     log.Println("Terminating client")
 }
