@@ -113,7 +113,7 @@ func (self *SolidityContract) Load_contract(from string, block_chain_url string)
 
 func (self *SolidityContract) Invoke_method(method_name string, params []interface{}) (interface{}, error) {
 	self.logger.Debug("Entry", method_name, params)
-	out, method_id, invocation_string, eth_method, found, err := "", "", "", "", false, error(nil)
+	out, method_id, invocation_string, eth_method, hex_sig, found, err := "", "", "", "", "", false, error(nil)
 	var result interface{}
 	var rpcResp *rpcResponse = new(rpcResponse)
 
@@ -124,7 +124,7 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 	}
 
 	if err == nil {
-		if hex_sig, err := self.get_method_sig(method_name); err == nil {
+		if hex_sig, err = self.get_method_sig(method_name); err == nil {
 			if out, err = self.Call_rpc_api("web3_sha3", hex_sig); err == nil {
 				if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
 					if rpcResp.Error.Message != "" {
@@ -509,6 +509,7 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 			} else {
 				err = &RPCError{fmt.Sprintf("RPC http invocation of %v returned error: %v", method, err.Error())}
 			}
+			//defer resp.Body.Close()
 		} else {
 			err = &RPCError{fmt.Sprintf("RPC invocation of %v failed creating http request, error: %v", method, err.Error())}
 		}
@@ -517,12 +518,9 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 	}
 
 	if err != nil {
-		fmt.Printf("*** Error %v\n", err.Error())
 		self.logger.Debug("Error", err.Error())
 	}
-	if method == "web3_sha3" {
-		fmt.Printf("*** out for web3: %v\n",out)
-	}
+
 	self.logger.Debug("Exit ", out)
 	return out, err
 }
@@ -601,12 +599,13 @@ func (self *SolidityContract) decode_string(methodName string, encoded_output st
 	self.logger.Debug("Entry", methodName, encoded_output)
 	out, remaining_output, value, err := "", "", "", error(nil)
 	var length uint64
+	var b []byte
 
 	if out, length, err = self.decode_uint256(methodName, encoded_output[64:]); err == nil {
 		if uint64(len(out)) < length {
 			err = &UnsupportedValueError{fmt.Sprintf("Unable to decode string output from %v because the output is shorter than required. Need %v, have %v.", methodName, length, len(out))}
 		} else {
-			if b, err := hex.DecodeString(out[:length*2]); err == nil {
+			if b, err = hex.DecodeString(out[:length*2]); err == nil {
 				value = string(b)
 				remaining_output = out[length*2:]
 			} else {
@@ -625,12 +624,14 @@ func (self *SolidityContract) decode_string(methodName string, encoded_output st
 func (self *SolidityContract) decode_bytes32(methodName string, encoded_output string) (string, string, error) {
 	self.logger.Debug("Entry", methodName, encoded_output)
 	out, remaining_output, value, err := "", "", "", error(nil)
+	var b []byte
+
 
 	if len(encoded_output) < 64 {
 		err = &UnsupportedValueError{fmt.Sprintf("Unable to decode bytes32 output from %v because the output is shorter than required. Need %v, have %v.", methodName, 64, len(encoded_output))}
 	} else {
 		out = encoded_output[:64]
-		if b, err := hex.DecodeString(out); err == nil {
+		if b, err = hex.DecodeString(out); err == nil {
 			value = string(b)
 			remaining_output = encoded_output[64:]
 		} else {
