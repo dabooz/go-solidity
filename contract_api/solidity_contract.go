@@ -123,10 +123,8 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 		err = &RPCError{fmt.Sprintf("This object has no compiled contract. Please use Load_contract() before invoking any contract methods.\n")}
 	}
 
-	fmt.Printf("*** err:%v",err)
 	if err == nil {
 		if hex_sig, err := self.get_method_sig(method_name); err == nil {
-			fmt.Printf("*** hexsig:%v for %v",hex_sig,method_name)
 			if out, err = self.Call_rpc_api("web3_sha3", hex_sig); err == nil {
 				if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
 					if rpcResp.Error.Message != "" {
