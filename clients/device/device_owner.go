@@ -171,7 +171,7 @@ func main() {
     // code.
     //
 
-    for i := 0; i < 10; i++ {
+    for i := 0; i < 100; i++ {
 
         log.Printf("Waiting for New Container assignment.\n")
 
