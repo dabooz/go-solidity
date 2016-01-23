@@ -490,26 +490,24 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 	the_params[0] = params
 	body["params"] = the_params
 	jsonBytes, err = json.Marshal(body)
-	if method == "web3_sha3" {
-		fmt.Printf("*** json for web3: %v\n",string(jsonBytes))
-	}
+	
 	if err == nil {
 		req, err = http.NewRequest("POST", self.rpcURL, bytes.NewBuffer(jsonBytes))
 		if err == nil {
 			client := &http.Client{}
 			resp, err = client.Do(req)
 			if err == nil {
-				defer resp.Body.Close()
+				//defer resp.Body.Close()
 				if outBytes, err = ioutil.ReadAll(resp.Body); err == nil {
 					out = string(outBytes)
 					//self.logger.Debug("Debug",out)
 				} else {
 					err = &RPCError{fmt.Sprintf("RPC invocation of %v failed reading response message, error: %v", method, outBytes, err.Error())}
 				}
+				defer resp.Body.Close()
 			} else {
 				err = &RPCError{fmt.Sprintf("RPC http invocation of %v returned error: %v", method, err.Error())}
 			}
-			//defer resp.Body.Close()
 		} else {
 			err = &RPCError{fmt.Sprintf("RPC invocation of %v failed creating http request, error: %v", method, err.Error())}
 		}
