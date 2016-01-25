@@ -34,19 +34,19 @@ NETWORKID=$((RANDOM * RANDOM))
 ETHERBASE=$(cat accounts)
 
 echo "Starting Ethereum."
-geth-bcn --fast --shh --verbosity 6 --nodiscover --networkid $NETWORKID --minerthreads 1 --mine --rpc --rpcapi "admin,db,eth,debug,miner,net,shh,txpool,personal,web3" --genesis /root/genesis.json >/tmp/geth.log 2>&1 &
+geth --fast --shh --verbosity 6 --nodiscover --networkid $NETWORKID --minerthreads 1 --mine --rpc --rpcapi "admin,db,eth,debug,miner,net,shh,txpool,personal,web3" --genesis /root/genesis.json >/tmp/geth.log 2>&1 &
 
 echo "Waiting for miner to mine a block."
 BALANCE=0
 while ! perl -e "exit($BALANCE == 0)"
 do
     sleep 5
-    BALANCE=$(geth-bcn --exec 'eth.getBalance(eth.accounts[0])' attach)
+    BALANCE=$(geth --exec 'eth.getBalance(eth.accounts[0])' attach)
 done
 echo $BALANCE
 
 echo "Unlocking account for bootstrap."
-while ! geth-bcn --exec personal.unlockAccount\(\"$ETHERBASE\",\"$PASSWD\"\) attach
+while ! geth --exec personal.unlockAccount\(\"$ETHERBASE\",\"$PASSWD\"\) attach
 do
     sleep 1
 done
