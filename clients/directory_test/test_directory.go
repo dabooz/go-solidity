@@ -381,7 +381,8 @@ func main() {
     fparams := make(map[string]interface{})
     fparams["address"] = wd.Get_contract_address()
     fparams["fromBlock"] = "0x1"
-    topics := make([]string,0,10)
+    topics := make([]interface{},0,10)
+    topics = append(topics, nil)
     topics = append(topics,"0x"+strings.Repeat("0", (64-len(registry_owner))) + registry_owner)
     fparams["topics"] = topics
 
