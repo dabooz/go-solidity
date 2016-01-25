@@ -38,8 +38,8 @@ contract directory {
         delete_entry_event_code
     }
 
-    event AddEntry(uint indexed _eventcode, address indexed _adder, uint indexed version, address indexed _contract, string _name) anonymous;
-    event DeleteEntry(uint indexed _eventcode, address indexed _deleter, uint indexed version, address indexed _contract, string _name) anonymous;
+    event AddEntry(uint indexed _eventcode, address indexed _adder, uint indexed version, address indexed _contract, bytes32 _name) anonymous;
+    event DeleteEntry(uint indexed _eventcode, address indexed _deleter, uint indexed version, address indexed _contract, bytes32 _name) anonymous;
 
     // contructor
     function directory() {
@@ -94,8 +94,8 @@ contract directory {
     function delete_entry(bytes32 _entry_name, uint _version) returns (bool r) {
         var e = names[_entry_name].versions[_version];
         if (e.contract_owner == tx.origin && e.contract_addr != address(0)) {
+            DeleteEntry(uint(event_codes.delete_entry_event_code), tx.origin, _version, e.contract_addr, _entry_name);
             delete names[_entry_name].versions[_version];
-            DeleteEntry(uint(event_codes.delete_entry_event_code), tx.origin, _version, _address, _entry_name);
             uint i = 0;
             bool removed = false;
             while (i < last_index) {
