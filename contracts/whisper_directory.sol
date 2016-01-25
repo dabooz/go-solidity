@@ -25,7 +25,7 @@ contract whisper_directory {
     // is updated.
     function add_entry(string _whisper_account) returns (bool r) {
         whisper_accounts[tx.origin] = _whisper_account;
-        AddEntry(uint(event_codes.add_entry_event_code), tx.origin, _whisper_account)
+        AddEntry(uint(event_codes.add_entry_event_code), tx.origin, _whisper_account);
         return true;
     }
 
@@ -39,7 +39,7 @@ contract whisper_directory {
     // his own entries.
     function delete_entry() returns (bool r) {
         var deleted_wa = whisper_accounts[tx.origin];
-        DeleteEntry(uint(event_codes.delete_entry_event_code), tx.origin, deleted_wa)
+        DeleteEntry(uint(event_codes.delete_entry_event_code), tx.origin, deleted_wa);
         delete whisper_accounts[tx.origin];
         return true;
     }
