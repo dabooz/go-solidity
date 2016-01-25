@@ -11,7 +11,7 @@ rm -rf .ethereum .ethash
 mkdir .ethereum # to avoid geth y/N question
 
 echo $PASSWD >passwd
-geth-bcn --password passwd account new | perl -p -e 's/[{}]//g' | awk '{print $NF}' >accounts
+geth --password passwd account new | perl -p -e 's/[{}]//g' | awk '{print $NF}' >accounts
 
 echo "Setting up genesis block."
 # create genesis block
