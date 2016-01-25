@@ -5,6 +5,7 @@ import (
     "log"
     "repo.hovitos.engineering/MTN/go-solidity/contract_api"
     "os"
+    "strings"
     "time"
     )
 

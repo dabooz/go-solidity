@@ -460,11 +460,11 @@ func format_dirc_event(ix int, ev rpcFilterChanges) {
     dirc_add_ev := "0x0000000000000000000000000000000000000000000000000000000000000000"
     dirc_del_ev := "0x0000000000000000000000000000000000000000000000000000000000000001"
 
-    if ev.Topics[0] == wd_add_ev {
+    if ev.Topics[0] == dirc_add_ev {
         log.Printf("|%03d| Entry added by %v version %v for %v\n",ix,ev.Topics[1],ev.Topics[2],ev.Topics[3]);
         log.Printf("Data: %v\n",ev.Data);
         log.Printf("Block: %v\n\n",ev.BlockNumber);
-    } else if ev.Topics[0] == wd_del_ev {
+    } else if ev.Topics[0] == dirc_del_ev {
         log.Printf("|%03d| Entry deleted by %v version %v for %v\n",ix,ev.Topics[1],ev.Topics[2],ev.Topics[3]);
         log.Printf("Data: %v\n",ev.Data);
         log.Printf("Block: %v\n\n",ev.BlockNumber);
