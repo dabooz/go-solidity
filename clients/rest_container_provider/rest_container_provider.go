@@ -432,6 +432,7 @@ func invoke_rest(method string, url string, body []byte, outstruct interface{}) 
 
     client := &http.Client{}
     rawresp, err := client.Do(req)
+    req.Close = true            // work around to ensure that Go doesn't get connections confused. Supposed to be fixed in Go 1.6.
     if err != nil {
         return err
     }

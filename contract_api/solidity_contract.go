@@ -494,16 +494,13 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 	if err == nil {
 		req, err = http.NewRequest("POST", self.rpcURL, bytes.NewBuffer(jsonBytes))
 		if err == nil {
-			req.Close = true
+			req.Close = true			// work around to ensure that Go doesn't get connections confused. Supposed to be fixed in Go 1.6.
 			client := &http.Client{}
 			resp, err = client.Do(req)
-			// defer resp.Body.Close()
 			if err == nil {
-				defer resp.Body.Close()   // intermittent errors here client.Do returns an error
+				defer resp.Body.Close()
 				if outBytes, err = ioutil.ReadAll(resp.Body); err == nil {
 					out = string(outBytes)
-					//self.logger.Debug("Debug",out)
-					//resp.Body.Close()
 				} else {
 					err = &RPCError{fmt.Sprintf("RPC invocation of %v failed reading response message, error: %v", method, outBytes, err.Error())}
 				}
