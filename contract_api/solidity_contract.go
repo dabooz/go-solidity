@@ -497,10 +497,11 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 			client := &http.Client{}
 			resp, err = client.Do(req)
 			if err == nil {
+				defer resp.Body.Close()
 				if outBytes, err = ioutil.ReadAll(resp.Body); err == nil {
 					out = string(outBytes)
 					//self.logger.Debug("Debug",out)
-					resp.Body.Close()
+					//resp.Body.Close()
 				} else {
 					err = &RPCError{fmt.Sprintf("RPC invocation of %v failed reading response message, error: %v", method, outBytes, err.Error())}
 				}
