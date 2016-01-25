@@ -32,6 +32,15 @@ contract directory {
     // This is working storage used to return the list of registered names.
     bytes32[] rr;
 
+    // Events represent a history of eveything that happened in the directory.
+    enum event_codes {
+        add_entry_event_code,
+        delete_entry_event_code
+    }
+
+    event AddEntry(uint indexed _eventcode, address indexed _adder, uint indexed version, address indexed _contract, string _name) anonymous;
+    event DeleteEntry(uint indexed _eventcode, address indexed _deleter, uint indexed version, address indexed _contract, string _name) anonymous;
+
     // contructor
     function directory() {
         // Save owner address
@@ -47,6 +56,7 @@ contract directory {
         if (addr == address(0)) {
             names[_entry_name].versions[_version] = entry({contract_addr:_address,
                                         contract_owner:tx.origin});
+            AddEntry(uint(event_codes.add_entry_event_code), tx.origin, _version, _address, _entry_name);
             index[last_index] = name_entry({name:_entry_name,
                                             version:_version});
             last_index += 1;
@@ -85,6 +95,7 @@ contract directory {
         var e = names[_entry_name].versions[_version];
         if (e.contract_owner == tx.origin && e.contract_addr != address(0)) {
             delete names[_entry_name].versions[_version];
+            DeleteEntry(uint(event_codes.delete_entry_event_code), tx.origin, _version, _address, _entry_name);
             uint i = 0;
             bool removed = false;
             while (i < last_index) {

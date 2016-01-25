@@ -171,7 +171,7 @@ func main() {
     // code.
     //
 
-    for i := 0; i < 50; i++ {
+    for i := 0; i < 5; i++ {
 
         log.Printf("Waiting for New Container assignment.\n")
 
@@ -432,12 +432,14 @@ func main() {
     b_ev_escrow_refunded                := "0x000000000000000000000000000000000000000000000000000000000000000a"
 
 
-    log.Printf("Dumping blockchain event data for bank transactions involving this owner %v.\n",device_owner)
+    log.Printf("Dumping blockchain event data for bank transactions involving this owner %v as device owner.\n",device_owner)
 
     fparams := make(map[string]interface{})
     fparams["address"] = bank.Get_contract_address()
-    topics := make([]string,0,10)
-    topics = append(topics,"0x"+device_owner)
+    topics := make([]interface{},0,10)
+    topics = append(topics, nil)
+    topics = append(topics, nil)
+    topics = append(topics,"0x"+strings.Repeat("0", (64-len(device_owner)))+device_owner)
     fparams["topics"] = topics
     fparams["fromBlock"] = "0x1"
 
