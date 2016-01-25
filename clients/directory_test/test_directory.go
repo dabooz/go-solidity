@@ -6,6 +6,7 @@ import (
     "log"
     "repo.hovitos.engineering/MTN/go-solidity/contract_api"
     "os"
+    "strings"
     )
 
 func main() {
@@ -381,7 +382,7 @@ func main() {
     fparams["address"] = wd.Get_contract_address()
     fparams["fromBlock"] = "0x1"
     topics := make([]string,0,10)
-    topics = append(topics,"0x"+registry_owner)
+    topics = append(topics,"0x"+strings.Repeat("0", (64-len(registry_owner))) + registry_owner)
     fparams["topics"] = topics
 
     if out, err = wd.Call_rpc_api("eth_newFilter", fparams); err == nil {
