@@ -494,10 +494,12 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 	if err == nil {
 		req, err = http.NewRequest("POST", self.rpcURL, bytes.NewBuffer(jsonBytes))
 		if err == nil {
+			req.Close = true
 			client := &http.Client{}
 			resp, err = client.Do(req)
+			// defer resp.Body.Close()
 			if err == nil {
-				defer resp.Body.Close()
+				defer resp.Body.Close()   // intermittent errors here client.Do returns an error
 				if outBytes, err = ioutil.ReadAll(resp.Body); err == nil {
 					out = string(outBytes)
 					//self.logger.Debug("Debug",out)
