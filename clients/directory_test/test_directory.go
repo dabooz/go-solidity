@@ -2,6 +2,8 @@ package main
 
 import (
     "fmt"
+    "encoding/json"
+    "log"
     "repo.hovitos.engineering/MTN/go-solidity/contract_api"
     "os"
     )
@@ -331,5 +333,134 @@ func main() {
         os.Exit(1)
     }
 
+    // Find all events related to this test in the blockchain and dump them into the output.
+
+    log.Printf("Dumping blockchain event data for contract %v.\n",wd.Get_contract_address())
+    result, out, err := "", "", error(nil)
+    var rpcResp *rpcResponse = new(rpcResponse)
+
+    params := make(map[string]string)
+    params["address"] = wd.Get_contract_address()
+    params["fromBlock"] = "0x1"
+
+    if out, err = wd.Call_rpc_api("eth_newFilter", params); err == nil {
+        if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
+            if rpcResp.Error.Message != "" {
+                log.Printf("eth_newFilter returned an error: %v.\n", rpcResp.Error.Message)
+            } else {
+                result = rpcResp.Result.(string)
+                // log.Printf("Event id: %v.\n",result)
+            }
+        }
+    }
+
+    var rpcFilterResp *rpcGetFilterChangesResponse = new(rpcGetFilterChangesResponse)
+    if out, err = wd.Call_rpc_api("eth_getFilterLogs", result); err == nil {
+        if err = json.Unmarshal([]byte(out), rpcFilterResp); err == nil {
+            if rpcFilterResp.Error.Message != "" {
+                log.Printf("eth_getFilterChanges returned an error: %v.\n", rpcFilterResp.Error.Message)
+            }
+        }
+    } else {
+        log.Printf("Error calling getFilterLogs: %v.\n",err)
+    }
+
+    if len(rpcFilterResp.Result) > 0 {
+        for ix, ev := range rpcFilterResp.Result {
+            format_wd_event(ix, ev);
+        }
+    }
+    
+    // Find all events related to this test in the blockchain and dump them into the output.
+
+    log.Printf("Dumping blockchain event data for %v using contract %v.\n",registry_owner,wd.Get_contract_address())
+    result, out, err = "", "", error(nil)
+    rpcResp = new(rpcResponse)
+
+    fparams := make(map[string]interface{})
+    fparams["address"] = wd.Get_contract_address()
+    fparams["fromBlock"] = "0x1"
+    topics := make([]string,0,10)
+    topics = append(topics,"0x"+registry_owner)
+    fparams["topics"] = topics
+
+    if out, err = wd.Call_rpc_api("eth_newFilter", fparams); err == nil {
+        if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
+            if rpcResp.Error.Message != "" {
+                log.Printf("eth_newFilter returned an error: %v.\n", rpcResp.Error.Message)
+            } else {
+                result = rpcResp.Result.(string)
+                // log.Printf("Event id: %v.\n",result)
+            }
+        }
+    }
+
+    rpcFilterResp = new(rpcGetFilterChangesResponse)
+    if out, err = wd.Call_rpc_api("eth_getFilterLogs", result); err == nil {
+        if err = json.Unmarshal([]byte(out), rpcFilterResp); err == nil {
+            if rpcFilterResp.Error.Message != "" {
+                log.Printf("eth_getFilterChanges returned an error: %v.\n", rpcFilterResp.Error.Message)
+            }
+        }
+    } else {
+        log.Printf("Error calling getFilterLogs: %v.\n",err)
+    }
+
+    if len(rpcFilterResp.Result) > 0 {
+        for ix, ev := range rpcFilterResp.Result {
+            format_wd_event(ix, ev);
+        }
+    }
+
     fmt.Println("Terminating directory test client")
+}
+
+func format_wd_event(ix int, ev rpcFilterChanges) {
+    // These event string correspond to event codes from the container_executor contract
+    wd_add_ev := "0x0000000000000000000000000000000000000000000000000000000000000000"
+    wd_del_ev := "0x0000000000000000000000000000000000000000000000000000000000000001"
+
+    if ev.Topics[0] == wd_add_ev {
+        log.Printf("|%03d| Entry added by %v\n",ix,ev.Topics[1]);
+        log.Printf("Data: %v\n",ev.Data);
+        log.Printf("Block: %v\n\n",ev.BlockNumber);
+    } else if ev.Topics[0] == wd_del_ev {
+        log.Printf("|%03d| Entry deleted by %v\n",ix,ev.Topics[1]);
+        log.Printf("Data: %v\n",ev.Data);
+        log.Printf("Block: %v\n\n",ev.BlockNumber);
+    }  // else {
+      //  log.Printf("|%03d| Unknown event code in first topic slot.\n")
+        log.Printf("Raw log entry:\n%v\n\n",ev)
+    //}
+}
+
+type rpcResponse struct {
+    Id      string      `json:"id"`
+    Version string      `json:"jsonrpc"`
+    Result  interface{} `json:"result"`
+    Error   struct {
+        Code    int    `json:"code"`
+        Message string `json:"message"`
+    } `json:"error"`
+}
+
+type rpcFilterChanges struct {
+    LogIndex         string   `json:"logIndex"`
+    TransactionHash  string   `json:"transactionHash"`
+    TransactionIndex string   `json:"transactionIndex"`
+    BlockNumber      string   `json:"blockNumber"`
+    BlockHash        string   `json:"blockHash"`
+    Address          string   `json:"address"`
+    Data             string   `json:"data"`
+    Topics           []string `json:"topics"`
+}
+
+type rpcGetFilterChangesResponse struct {
+    Id      string             `json:"id"`
+    Version string             `json:"jsonrpc"`
+    Result  []rpcFilterChanges `json:"result"`
+    Error   struct {
+        Code    int    `json:"code"`
+        Message string `json:"message"`
+    } `json:"error"`
 }
