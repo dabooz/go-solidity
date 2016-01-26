@@ -20,7 +20,7 @@ func main() {
     fmt.Printf("Using account %v.\n",owning_acount)
 
     dir_ver := Get_directory_version()
-    fmt.Printf("Bootstrapping version %v entries",dir_ver)
+    fmt.Printf("Bootstrapping version %v entries.\n",dir_ver)
 
     fmt.Println("Deploying directory contract.")
     dsc := contract_api.SolidityContractFactory("directory")
