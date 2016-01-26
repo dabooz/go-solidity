@@ -11,8 +11,8 @@ RUN mkdir /tmp/src/repo.hovitos.engineering
 RUN mkdir /tmp/src/repo.hovitos.engineering/MTN
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN
 RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/go-solidity.git
-WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity
-RUN git checkout prodcon
+#WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity
+#RUN git checkout prodcon
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity/clients
 ENV GOPATH /tmp
 #ENV mtn_soliditycontract=1
@@ -26,8 +26,8 @@ RUN cp /tmp/bin/directory_test /usr/bin/mtn-directory_test
 WORKDIR /tmp/src
 RUN go get github.com/gorilla/mux
 RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN-research/marketplace.git
-WORKDIR /tmp/src/marketplace
-RUN git checkout indefinite
+#WORKDIR /tmp/src/marketplace
+#RUN git checkout indefinite
 WORKDIR /tmp/src/marketplace/gorest
 RUN make
 RUN cp /tmp/bin/gorest /usr/bin/mtn-gorest
