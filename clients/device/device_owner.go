@@ -396,24 +396,25 @@ func main() {
     if len(rpcFilterResp.Result) > 0 {
         for ix, ev := range rpcFilterResp.Result {
             if ev.Topics[0] == dev_ev_prop {
-                log.Printf("|%03d| New Proposal %v\n",ix,ev.Topics[1]);
+                log.Printf("|%03d| New Proposal from %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n",ev.Data);
                 log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == dev_ev_perr {
-                log.Printf("|%03d| New Proposal Error %v\n",ix,ev.Topics[1]);
+                log.Printf("|%03d| New Proposal Error from %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n",ev.Data);
                 log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == dev_ev_rej {
-                log.Printf("|%03d| Reject Proposal %v\n",ix,ev.Topics[1]);
+                log.Printf("|%03d| Proposal rejected by %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n",ev.Data);
                 log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == dev_ev_can {
-                log.Printf("|%03d| Cancel Proposal %v\n",ix,ev.Topics[1]);
+                log.Printf("|%03d| Proposal cancelled by %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n",ev.Data);
                 log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else {
                 log.Printf("|%03d| Unknown event code in first topic slot.\n")
                 log.Printf("Raw log entry:\n%v\n\n",ev)
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             }
         }
     }
@@ -470,39 +471,51 @@ func main() {
             if ev.Topics[0] == b_ev_mint {
                 log.Printf("|%03d| Mint %v tokens for %v\n",ix,ev.Topics[3],ev.Topics[2]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == b_ev_loan_created {
                 log.Printf("|%03d| New Loan %v tokens for %v\n",ix,ev.Topics[2],ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == b_ev_loan_extended {
                 log.Printf("|%03d| Loan increased %v tokens for %v\n",ix,ev.Topics[2],ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == b_ev_loan_repaid {
                 log.Printf("|%03d| Loan repaid %v tokens for %v\n",ix,ev.Topics[2],ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == b_ev_transfer {
                 log.Printf("|%03d| Transfer %v tokens from %v to %v\n",ix,ev.Topics[3],ev.Topics[1],ev.Topics[2]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == b_ev_escrow_created {
                 log.Printf("|%03d| Create Escrow %v tokens by %v\n",ix,ev.Data,ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == b_ev_escrow_cancelled {
                 log.Printf("|%03d| Cancel Escrow\n",ix);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == b_ev_escrow_counterparty_accepted {
                 log.Printf("|%03d| CounterParty Acceptance with %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == b_ev_escrow_proposer_accepted {
                 log.Printf("|%03d| Proposer Acceptance from %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == b_ev_escrow_proposer_paid {
                 log.Printf("|%03d| Received %v tokens from %v\n",ix,ev.Data,ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == b_ev_escrow_refunded {
                 log.Printf("|%03d| Refunded %v escrowed tokens to %v\n",ix,ev.Data,ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else {
                 log.Printf("|%03d| Unknown event code in first topic slot.\n")
                 log.Printf("Raw log entry:\n%v\n\n",ev)
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             }
         }
     }
@@ -550,15 +563,19 @@ func main() {
             if ev.Topics[0] == dr_ev_new {
                 log.Printf("|%03d| New registration of %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == dr_ev_update {
                 log.Printf("|%03d| Update registration of %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else if ev.Topics[0] == dr_ev_dereg {
                 log.Printf("|%03d| Deregister %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n\n",ev.Data);
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             } else {
                 log.Printf("|%03d| Unknown event code in first topic slot.\n")
                 log.Printf("Raw log entry:\n%v\n\n",ev)
+                log.Printf("Block: %v\n\n",ev.BlockNumber);
             }
         }
     }

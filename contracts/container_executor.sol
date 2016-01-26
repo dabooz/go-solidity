@@ -17,10 +17,10 @@ contract container_executor {
         container_cancelled_event_code
     }
 
-    event NewContainer(uint indexed _eventcode, string indexed _id, address indexed _self, address indexed _owner, uint _amount) anonymous;
-    event NewContainerError(uint indexed _eventcode, string indexed _id, address indexed _self, address indexed _owner, uint _amount) anonymous;
-    event ContainerRejected(uint indexed _eventcode, string indexed _id, address indexed _self, address indexed _owner) anonymous;
-    event ContainerCancelled(uint indexed _eventcode, string indexed _id, address indexed _self, address indexed _owner, uint _amount) anonymous;
+    event NewContainer(uint indexed _eventcode, address indexed _proposer, address indexed _owner, address indexed _contract, uint _amount, string _id) anonymous;
+    event NewContainerError(uint indexed _eventcode, address indexed _proposer, address indexed _owner, address indexed _contract, uint _amount, string _id) anonymous;
+    event ContainerRejected(uint indexed _eventcode, address indexed _rejecter, address indexed _owner, address indexed _contract, string _id) anonymous;
+    event ContainerCancelled(uint indexed _eventcode, address indexed _canceller, address indexed _owner, address indexed _contract, uint _amount, string _id) anonymous;
 
     // This function is used by governors (Glensung, IoT providers, etc) to make proposals to
     // device owners for running containers. This function escrows the offered funds in the
@@ -35,10 +35,10 @@ contract container_executor {
                 whisper = _whisperId;
                 agreement = _agreementId;
                 container_provider = tx.origin;
-                NewContainer(uint(event_codes.new_container_event_code), _agreementId, this, owner, _amount);
+                NewContainer(uint(event_codes.new_container_event_code), tx.origin, owner, this, _amount, _agreementId);
                 return true;
             } else {
-                NewContainerError(uint(event_codes.new_container_error_event_code), _agreementId, this, owner, _amount);
+                NewContainerError(uint(event_codes.new_container_error_event_code), tx.origin, owner, this, _amount, _agreementId);
                 return false;
             }
         } else {
@@ -52,7 +52,7 @@ contract container_executor {
     function reject_container() returns (bool r) {
         if (tx.origin == owner) {
             piggy_bank.cancel_escrow(container_provider, tx.origin, this, 0);
-            ContainerRejected(uint(event_codes.container_rejected_event_code), agreement, this, owner);
+            ContainerRejected(uint(event_codes.container_rejected_event_code), tx.origin, owner, this, agreement);
             clear_container();
             return true;
         } else {
@@ -66,7 +66,7 @@ contract container_executor {
     function cancel_container(uint _amount) returns (bool r) {
         if (container_provider != address(0) && tx.origin == container_provider) {
             piggy_bank.cancel_escrow(tx.origin, owner, this, _amount);
-            ContainerCancelled(uint(event_codes.container_cancelled_event_code), agreement, this, owner, _amount);
+            ContainerCancelled(uint(event_codes.container_cancelled_event_code), tx.origin, owner, this, _amount, agreement);
             clear_container();
             return true;
         } else {
@@ -123,4 +123,3 @@ contract container_executor {
         if (msg.sender == owner) suicide(owner);
     }
 }
-
