@@ -411,10 +411,10 @@ func main() {
                 log.Printf("|%03d| Cancel Proposal %v\n",ix,ev.Topics[1]);
                 log.Printf("Data: %v\n",ev.Data);
                 log.Printf("Block: %v\n\n",ev.BlockNumber);
-            } // else {
-              //  log.Printf("|%03d| Unknown event code in first topic slot.\n")
+            } else {
+                log.Printf("|%03d| Unknown event code in first topic slot.\n")
                 log.Printf("Raw log entry:\n%v\n\n",ev)
-            //}
+            }
         }
     }
 
@@ -507,6 +507,61 @@ func main() {
         }
     }
 
+    // These event string correspond to event codes from the device_registry contract
+
+    dr_ev_new       := "0x0000000000000000000000000000000000000000000000000000000000000000"
+    dr_ev_update    := "0x0000000000000000000000000000000000000000000000000000000000000001"
+    dr_ev_dereg     := "0x0000000000000000000000000000000000000000000000000000000000000002"
+
+    log.Printf("Dumping blockchain event data for device registry transactions involving this owner %v.\n",device_owner)
+
+    fparams = make(map[string]interface{})
+    fparams["address"] = dr.Get_contract_address()
+    topics = make([]interface{},0,10)
+    topics = append(topics, nil)
+    topics = append(topics, nil)
+    topics = append(topics,"0x"+strings.Repeat("0", (64-len(device_owner)))+device_owner)
+    fparams["topics"] = topics
+    fparams["fromBlock"] = "0x1"
+
+    if out, err = dr.Call_rpc_api("eth_newFilter", fparams); err == nil {
+        if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
+            if rpcResp.Error.Message != "" {
+                log.Printf("eth_newFilter returned an error: %v.\n", rpcResp.Error.Message)
+            } else {
+                result = rpcResp.Result.(string)
+                // log.Printf("Event id: %v.\n",result)
+            }
+        }
+    }
+
+    if out, err = dr.Call_rpc_api("eth_getFilterLogs", result); err == nil {
+        if err = json.Unmarshal([]byte(out), rpcFilterResp); err == nil {
+            if rpcFilterResp.Error.Message != "" {
+                log.Printf("eth_getFilterLogs returned an error: %v.\n", rpcFilterResp.Error.Message)
+            }
+        }
+    } else {
+        log.Printf("Error calling getFilterLogs: %v.\n",err)
+    }
+
+    if len(rpcFilterResp.Result) > 0 {
+        for ix, ev := range rpcFilterResp.Result {
+            if ev.Topics[0] == dr_ev_new {
+                log.Printf("|%03d| New registration of %v\n",ix,ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ev.Data);
+            } else if ev.Topics[0] == dr_ev_update {
+                log.Printf("|%03d| Update registration of %v\n",ix,ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ev.Data);
+            } else if ev.Topics[0] == dr_ev_dereg {
+                log.Printf("|%03d| Deregister %v\n",ix,ev.Topics[1]);
+                log.Printf("Data: %v\n\n",ev.Data);
+            } else {
+                log.Printf("|%03d| Unknown event code in first topic slot.\n")
+                log.Printf("Raw log entry:\n%v\n\n",ev)
+            }
+        }
+    }
 
     log.Println("Terminating client")
 }

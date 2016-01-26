@@ -62,7 +62,7 @@ contract token_bank {
         escrow_refunded                 // escrow refunded to proposer
     }
 
-    event Mint(uint indexed _event_code, address indexed owner, address indexed _from, uint indexed_value) anonymous;
+    event Mint(uint indexed _event_code, address indexed owner, address indexed _from, uint indexed _value) anonymous;
     event ObtainLoan(uint indexed _event_code, address indexed _from, uint indexed _value) anonymous;
     event ExtendLoan(uint indexed _event_code, address indexed _from, uint indexed _value) anonymous;
     event RepayLoan(uint indexed _event_code, address indexed _from, uint indexed _value) anonymous;

@@ -25,6 +25,18 @@ contract device_registry {
     function get_number_registered() constant returns (uint r) {
         return last_index;
     }
+
+    // Events represent a history of eveything that happened in the directory.
+    enum event_codes {
+        new_register_event_code,
+        update_register_event_code,
+        deregister_event_code
+    }
+
+    event NewRegisterDevice(uint indexed _eventcode, address indexed _device_contract, address indexed _registrant, bytes32[] _attributes) anonymous;
+    event UpdateRegisterDevice(uint indexed _eventcode, address indexed _device_contract, address indexed _registrant, bytes32[] _attributes) anonymous;
+    event DeregisterDevice(uint indexed _eventcode, address indexed _device_contract, address indexed _registrant) anonymous;
+
     function register(address _device, bytes32[] _desc) returns (bool r) {
         if (_device == address(0) || _desc.length == 0) {
             return false;
@@ -35,11 +47,13 @@ contract device_registry {
             if (existing_reg.last_index != 0) {
                 delete devices[_device];
                 exists = true;
+                UpdateRegisterDevice(uint(event_codes.update_register_event_code), _device, tx.origin, _desc);
             }
             devices[_device] = Description({last_index:0});
             from_input(devices[_device],_desc);
             index[last_index] = _device;
             if (exists == false) {
+                NewRegisterDevice(uint(event_codes.new_register_event_code), _device, tx.origin, _desc);
                 piggy_bank.mint(5);
                 last_index += 1;
                 add_to_mine(_device);
@@ -160,6 +174,7 @@ contract device_registry {
         }
         if (tx.origin == owner || tx.origin == container_executor(_device).get_owner()) { 
             delete devices[_device];
+            DeregisterDevice(uint(event_codes.deregister_event_code), _device, tx.origin);
             uint i = 0;
             bool removed = false;
             while (i < last_index) {
