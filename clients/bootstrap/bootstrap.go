@@ -5,6 +5,7 @@ import (
     "repo.hovitos.engineering/MTN/go-solidity/contract_api"
     "io/ioutil"
     "os"
+    "strconv"
 )
 
 func main() {
@@ -17,6 +18,9 @@ func main() {
     owning_acount := os.Args[1]
 
     fmt.Printf("Using account %v.\n",owning_acount)
+
+    dir_ver := Get_directory_version()
+    fmt.Printf("Bootstrapping version %v entries",dir_ver)
 
     fmt.Println("Deploying directory contract.")
     dsc := contract_api.SolidityContractFactory("directory")
@@ -39,7 +43,7 @@ func main() {
                 p := make([]interface{},0,10)
                 p = append(p,"token_bank")
                 p = append(p,tbsc.Get_contract_address())
-                p = append(p,0)
+                p = append(p,dir_ver)
                 _,_ = dsc.Invoke_method("add_entry",p)
                 fmt.Println("Added token bank to directory.")
 
@@ -47,7 +51,7 @@ func main() {
                 p = make([]interface{},0,10)
                 p = append(p,"device_registry")
                 p = append(p,drsc.Get_contract_address())
-                p = append(p,0)
+                p = append(p,dir_ver)
                 _,err = dsc.Invoke_method("add_entry",p)
                 fmt.Println("Added device registry to directory.")
 
@@ -70,7 +74,7 @@ func main() {
                     p := make([]interface{},0,10)
                     p = append(p,"whisper_directory")
                     p = append(p,wd.Get_contract_address())
-                    p = append(p,0)
+                    p = append(p,dir_ver)
                     _,_ = dsc.Invoke_method("add_entry",p)
                     fmt.Println("Added whisper_directory to directory.")
                 } else {
@@ -96,3 +100,18 @@ func main() {
     }
 
 }
+
+func Get_directory_version() int {
+    dir_ver := os.Getenv("CMTN_DIRECTORY_VERSION")
+    if dir_ver == "" {
+        dir_ver = "0"
+    }
+    var err error
+    var d_ver = 0;
+    if d_ver,err = strconv.Atoi(dir_ver); err != nil {
+        return 0
+    }
+    return d_ver
+}
+
+
