@@ -44,16 +44,16 @@ func main() {
         os.Exit(1)
     }
 
-    fmt.Printf("Retrieve a list of all registered names, should have only the MTN platform entries.\n")
-    p = make([]interface{},0,10)
-    p = append(p,0)
-    p = append(p,10)
-    if nl,err := dirc.Invoke_method("get_names",p); err == nil {
-        fmt.Printf("Registered names %v\n",nl)
-    } else {
-        fmt.Printf("Error invoking get_names: %v\n",err)
-        os.Exit(1)
-    }
+    // fmt.Printf("Retrieve a list of all registered names, should have only the MTN platform entries.\n")
+    // p = make([]interface{},0,10)
+    // p = append(p,0)
+    // p = append(p,10)
+    // if nl,err := dirc.Invoke_method("get_names",p); err == nil {
+    //     fmt.Printf("Registered names %v\n",nl)
+    // } else {
+    //     fmt.Printf("Error invoking get_names: %v\n",err)
+    //     os.Exit(1)
+    // }
 
     fmt.Printf("Register 'a' with address 0x0000000000000000000000000000000000000010.\n")
     p = make([]interface{},0,10)
@@ -80,30 +80,30 @@ func main() {
         os.Exit(1)
     }
 
-    fmt.Printf("Retrieve owner of 'a', should be %v.\n",registry_owner)
-    p = make([]interface{},0,10)
-    p = append(p,"a")
-    p = append(p,0)
-    if aa,err := dirc.Invoke_method("get_entry_owner",p); err == nil {
-        fmt.Printf("Retrieved owner of 'a' %v.\n",aa)
-        if aa.(string)[2:] != registry_owner {
-            os.Exit(1)
-        }
-    } else {
-        fmt.Printf("Error invoking add_entry: %v\n",err)
-        os.Exit(1)
-    }
+    // fmt.Printf("Retrieve owner of 'a', should be %v.\n",registry_owner)
+    // p = make([]interface{},0,10)
+    // p = append(p,"a")
+    // p = append(p,0)
+    // if aa,err := dirc.Invoke_method("get_entry_owner",p); err == nil {
+    //     fmt.Printf("Retrieved owner of 'a' %v.\n",aa)
+    //     if aa.(string)[2:] != registry_owner {
+    //         os.Exit(1)
+    //     }
+    // } else {
+    //     fmt.Printf("Error invoking add_entry: %v\n",err)
+    //     os.Exit(1)
+    // }
 
-    fmt.Printf("Retrieve a list of all registered names, should have 'a' in it.\n")
-    p = make([]interface{},0,10)
-    p = append(p,0)
-    p = append(p,10)
-    if nl,err := dirc.Invoke_method("get_names",p); err == nil {
-        fmt.Printf("Registered names %v\n",nl)
-    } else {
-        fmt.Printf("Error invoking get_names: %v\n",err)
-        os.Exit(1)
-    }
+    // fmt.Printf("Retrieve a list of all registered names, should have 'a' in it.\n")
+    // p = make([]interface{},0,10)
+    // p = append(p,0)
+    // p = append(p,10)
+    // if nl,err := dirc.Invoke_method("get_names",p); err == nil {
+    //     fmt.Printf("Registered names %v\n",nl)
+    // } else {
+    //     fmt.Printf("Error invoking get_names: %v\n",err)
+    //     os.Exit(1)
+    // }
 
     fmt.Printf("Register 'b' with address 0x0000000000000000000000000000000000000011.\n")
     p = make([]interface{},0,11)
@@ -141,16 +141,16 @@ func main() {
         os.Exit(1)
     }
 
-    fmt.Printf("Retrieve a list of all registered names, should have 'a,b,c,c' in it.\n")
-    p = make([]interface{},0,10)
-    p = append(p,0)
-    p = append(p,10)
-    if nl,err := dirc.Invoke_method("get_names",p); err == nil {
-        fmt.Printf("Registered names %v\n",nl)
-    } else {
-        fmt.Printf("Error invoking get_names: %v\n",err)
-        os.Exit(1)
-    }
+    // fmt.Printf("Retrieve a list of all registered names, should have 'a,b,c,c' in it.\n")
+    // p = make([]interface{},0,10)
+    // p = append(p,0)
+    // p = append(p,10)
+    // if nl,err := dirc.Invoke_method("get_names",p); err == nil {
+    //     fmt.Printf("Registered names %v\n",nl)
+    // } else {
+    //     fmt.Printf("Error invoking get_names: %v\n",err)
+    //     os.Exit(1)
+    // }
 
     fmt.Printf("Retrieve verison 1 of 'c',should be 0x00..0013.\n")
     p = make([]interface{},0,10)
@@ -177,16 +177,16 @@ func main() {
         os.Exit(1)
     }
 
-    fmt.Printf("Retrieve a list of all registered names, should have MTN contracts plus 'a,c,c' in it.\n")
-    p = make([]interface{},0,10)
-    p = append(p,0)
-    p = append(p,10)
-    if nl,err := dirc.Invoke_method("get_names",p); err == nil {
-        fmt.Printf("Registered names %v\n",nl)
-    } else {
-        fmt.Printf("Error invoking get_names: %v\n",err)
-        os.Exit(1)
-    }
+    // fmt.Printf("Retrieve a list of all registered names, should have MTN contracts plus 'a,c,c' in it.\n")
+    // p = make([]interface{},0,10)
+    // p = append(p,0)
+    // p = append(p,10)
+    // if nl,err := dirc.Invoke_method("get_names",p); err == nil {
+    //     fmt.Printf("Registered names %v\n",nl)
+    // } else {
+    //     fmt.Printf("Error invoking get_names: %v\n",err)
+    //     os.Exit(1)
+    // }
 
     fmt.Printf("Delete 'c' version 0.\n")
     p = make([]interface{},0,10)
@@ -221,16 +221,16 @@ func main() {
         os.Exit(1)
     }
 
-    fmt.Printf("Retrieve a list of all registered names, should be just the MTN platform entries.\n")
-    p = make([]interface{},0,10)
-    p = append(p,0)
-    p = append(p,10)
-    if nl,err := dirc.Invoke_method("get_names",p); err == nil {
-        fmt.Printf("Registered names %v\n",nl)
-    } else {
-        fmt.Printf("Error invoking get_names: %v\n",err)
-        os.Exit(1)
-    }
+    // fmt.Printf("Retrieve a list of all registered names, should be just the MTN platform entries.\n")
+    // p = make([]interface{},0,10)
+    // p = append(p,0)
+    // p = append(p,10)
+    // if nl,err := dirc.Invoke_method("get_names",p); err == nil {
+    //     fmt.Printf("Registered names %v\n",nl)
+    // } else {
+    //     fmt.Printf("Error invoking get_names: %v\n",err)
+    //     os.Exit(1)
+    // }
 
     // ================= whisper directory tests ===================================
     // Find the whisper directory
