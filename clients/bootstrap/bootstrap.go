@@ -42,7 +42,7 @@ func main() {
         fmt.Println("Locating directory contract.")
         if res,err := dsc.Load_contract(owning_acount, ""); err == nil {
             dsc.Set_contract_address(existing_dir)
-            fmt.Printf("Deployed directory contract:%v at %v.\n",res,dsc.Get_contract_address())
+            fmt.Printf("Located directory contract:%v at %v.\n",res,dsc.Get_contract_address())
         } else {
             fmt.Printf("Error deploying directory: %v\n",err)
             os.Exit(1)
