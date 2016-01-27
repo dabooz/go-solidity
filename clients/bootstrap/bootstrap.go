@@ -18,7 +18,7 @@ func main() {
     owning_acount := os.Args[1]
     var existing_dir = ""
     if len(os.Args)>2 {
-        existing_dir := os.Args[2]  // This parameter is optional
+        existing_dir = os.Args[2]  // This parameter is optional
         fmt.Printf("Bootstrap into existing dir %v.\n",existing_dir)
     }
 
