@@ -112,7 +112,9 @@ func main() {
     // Register the device in the registry
     p = make([]interface{},0,10)
     p = append(p,sc.Get_contract_address())
-    p2 := make([]string,0,18)
+    p2 := make([]string,0,20)
+    p2 = append(p2,"name")
+    p2 = append(p2,"Hello, fib!")
     p2 = append(p2,"arch")
     p2 = append(p2,"armhf")
     p2 = append(p2,"ram")
