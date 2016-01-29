@@ -149,7 +149,11 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 		}
 	}
 
+	// Let's make sure our ethereum instance is still working correctly
+	err = self.check_eth_status()
+
 	if err == nil {
+
 		p := make(map[string]string)
 		p["from"] = self.from
 		p["to"] = self.contractAddress
@@ -1128,6 +1132,129 @@ func (self *SolidityContract) zero_pad_left(p string, length int) string {
 		}
 	}
 }
+
+func (self *SolidityContract) check_eth_status() error {
+	self.logger.Debug("Entry")
+	err := error(nil)
+	var res string
+    var rpcResp *rpcResponse = new(rpcResponse)
+    net_done := false
+    block_done := false
+    sync_done := false
+
+    poll_wait := 5
+
+    start_timer := time.Now()
+    for !net_done {
+        if res,err = self.Call_rpc_api("net_peerCount",nil); err != nil {
+            err = &RPCError{fmt.Sprintf("RPC invocation of net_peerCount returned an error: %v.",err)}
+            break
+        }
+        if err = json.Unmarshal([]byte(res),rpcResp); err != nil {
+            err = &RPCError{fmt.Sprintf("RPC invocation of net_peerCount returned undecodable response %v, error: %v.",res,err)}
+            break
+        }
+
+        if rpcResp.Error.Message != "" {
+            err = &RPCError{fmt.Sprintf("RPC invocation of net_peerCount returned an error: %v.",rpcResp.Error.Message)}
+            break
+        } else {
+            switch rpcResp.Result.(type) {
+                case string:
+                    if rpcResp.Result != "0x0" {
+                        net_done = true
+                        break
+                    }
+                default:
+            }
+            delta := time.Now().Sub(start_timer).Seconds()
+			if int(delta) < self.tx_delay_toleration {
+				self.logger.Debug("Debug", fmt.Sprintf("Waiting for non-zero peer count for %v seconds.", delta))
+				time.Sleep(time.Duration(poll_wait)*1000*time.Millisecond)
+			} else {
+				err = &RPCError{fmt.Sprintf("Peer count check timed out, after %v seconds.", delta)}
+				break
+			}
+        }
+    }
+
+    start_timer = time.Now()
+    for !block_done && err == nil {
+        if res,err = self.Call_rpc_api("eth_blockNumber",nil); err != nil {
+            err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned an error: %v.",err)}
+            break
+        }
+        if err = json.Unmarshal([]byte(res),rpcResp); err != nil {
+            err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned undecodable response %v, error: %v.",res,err)}
+            break
+        }
+
+        if rpcResp.Error.Message != "" {
+            err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned an error: %v.",rpcResp.Error.Message)}
+            break
+        } else {
+            switch rpcResp.Result.(type) {
+                case string:
+                    if rpcResp.Result != "0x0" {
+                        block_done = true
+                        break
+                    }
+                default:
+            }
+            delta := time.Now().Sub(start_timer).Seconds()
+			if int(delta) < self.tx_delay_toleration {
+				self.logger.Debug("Debug", fmt.Sprintf("Waiting for non-zero block count for %v seconds.", delta))
+				time.Sleep(time.Duration(poll_wait)*1000*time.Millisecond)
+			} else {
+				err = &RPCError{fmt.Sprintf("Block count check timed out, after %v seconds.", delta)}
+				break
+			}
+        }
+    }
+
+    start_timer = time.Now()
+    for !sync_done && err == nil {
+        if res,err = self.Call_rpc_api("eth_syncing",nil); err == nil {
+            if err = json.Unmarshal([]byte(res),rpcResp); err == nil {
+                if rpcResp.Error.Message != "" {
+                    err = &RPCError{fmt.Sprintf("RPC invocation of eth_syncing returned an error: %v.",rpcResp.Error.Message)}
+                    break
+                } else {
+                    switch rpcResp.Result.(type) {
+                        case bool:
+                            if rpcResp.Result == false {
+                                sync_done = true
+                                break
+                            }
+                        default:
+                    }
+                    delta := time.Now().Sub(start_timer).Seconds()
+					if int(delta) < self.tx_delay_toleration {
+						self.logger.Debug("Debug", fmt.Sprintf("Waiting for syncing to complete for %v seconds.", delta))
+						time.Sleep(time.Duration(poll_wait)*1000*time.Millisecond)
+					} else {
+						err = &RPCError{fmt.Sprintf("Block count check timed out, after %v seconds.", delta)}
+						break
+					}
+                }
+            } else {
+                err = &RPCError{fmt.Sprintf("RPC invocation of eth_syncing returned undecodable response %v, error: %v.",res,err)}
+            	break
+            }
+        } else {
+            err = &RPCError{fmt.Sprintf("RPC invocation of eth_syncing returned an error: %v.",err)}
+            break
+        }
+    }
+
+	if err != nil {
+		self.logger.Debug("Error", err.Error())
+	}
+	self.logger.Debug("Exit ")
+	return err
+}
+
+
 
 // ============================================================================
 // Errors surfaced by this class
