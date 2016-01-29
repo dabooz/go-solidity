@@ -503,12 +503,14 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 
 	switch params.(type) {
 	case MultiValueParams:
+		self.logger.Debug("Debug", " in MVP switch ")
 		the_params = append(the_params,params.(MultiValueParams).a)
 		the_params = append(the_params,params.(MultiValueParams).b)
 	default:
 		the_params = append(the_params,params)
 	}
 
+	self.logger.Debug("Debug", the_params)
 
 	// the_params[0] = params
 	body["params"] = the_params
