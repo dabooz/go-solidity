@@ -1228,7 +1228,7 @@ type rpcTranReceipt struct {
 	CumulativeGasUsed string   `json:"cumulativeGasUsed"`
 	GasUsed           string   `json:"gasUsed"`
 	ContractAddress   string   `json:"contractAddress"`
-	Logs              []string `json:"logs"`
+	Logs              []interface{} `json:"logs"`
 }
 
 type rpcGetFilterChangesResponse struct {
