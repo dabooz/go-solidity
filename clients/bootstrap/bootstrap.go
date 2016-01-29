@@ -83,11 +83,6 @@ func main() {
             _,err = drsc.Invoke_method("set_bank",p)
             fmt.Println("Connected device registry to token bank.")
 
-            // Saving directory address to file system
-
-            _ = ioutil.WriteFile("directory",[]byte(dsc.Get_contract_address()[2:]),0644)
-            fmt.Printf("Wrote directory address to file system.\n")
-
             fmt.Println("Deploying whisper_directory contract.")
             wd := contract_api.SolidityContractFactory("whisper_directory")
             if res,err := wd.Deploy_contract(owning_acount, ""); err == nil {
@@ -103,6 +98,11 @@ func main() {
                 fmt.Printf("Error deploying whisper directory: %v\n",err)
                 os.Exit(1)
             }
+
+            // Saving directory address to file system
+
+            _ = ioutil.WriteFile("directory",[]byte(dsc.Get_contract_address()[2:]),0644)
+            fmt.Printf("Wrote directory address to file system.\n")
 
             fmt.Println("Successfully completed MTN contract bootstrap.")
 

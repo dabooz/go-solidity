@@ -26,6 +26,7 @@ type SolidityContract struct {
 	noEventlistener     bool
 	tx_delay_toleration int
 	logger              *utility.DebugTrace
+	logBlockchainStats  string
 }
 
 func SolidityContractFactory(name string) *SolidityContract {
@@ -43,6 +44,7 @@ func SolidityContractFactory(name string) *SolidityContract {
 		delay = 60
 	}
 	sc.tx_delay_toleration = delay
+	sc.logBlockchainStats = os.Getenv("mtn_soliditycontract_logstats")
 	return sc
 }
 
@@ -161,18 +163,20 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 				} else {
 					if !self.is_constant(method_name) {
 						tx_address := rpcResp.Result.(string)
+						var rpcTResp *rpcGetTransactionResponse = new(rpcGetTransactionResponse)
 
 						start_timer := time.Now()
 						for !found && err == nil {
 							if out, err = self.Call_rpc_api("eth_getTransactionReceipt", tx_address); err == nil {
-								if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
-									if rpcResp.Error.Message != "" {
+								if err = json.Unmarshal([]byte(out), rpcTResp); err == nil {
+									if rpcTResp.Error.Message != "" {
 										err = &RPCError{fmt.Sprintf("RPC transaction receipt for tx %v, invoking %v returned an error: %v.", tx_address, method_name, rpcResp.Error.Message)}
 									} else {
-										//self.logger.Debug("Debug",rpcResp.Result)
-										if rpcResp.Result != nil {
+										//self.logger.Debug("Debug",rpcTResp.Result)
+										if rpcTResp.Result.BlockNumber != "" {
 											result = 0
 											found = true
+											self.log_stats(rpcTResp)
 										} else {
 											delta := time.Now().Sub(start_timer).Seconds()
 											if int(delta) < self.tx_delay_toleration {
@@ -350,6 +354,7 @@ func (self *SolidityContract) get_contract(tx_address string) (string, error) {
 					if rpcResp.Result.ContractAddress != "" {
 						result = rpcResp.Result.ContractAddress
 						found = true
+						self.log_stats(rpcResp)
 					} else {
 						delta := time.Now().Sub(start_timer).Seconds()
 						if int(delta) < self.tx_delay_toleration {
@@ -369,6 +374,14 @@ func (self *SolidityContract) get_contract(tx_address string) (string, error) {
 	}
 	self.logger.Debug("Exit ", result)
 	return result, err
+}
+
+func (self *SolidityContract) log_stats(rpcResp *rpcGetTransactionResponse) {
+	// If logging blockchain stats, dump them to the log
+	if self.logBlockchainStats != "" {
+		block_num := rpcResp.Result.BlockNumber
+		_,_ = self.Call_rpc_api("eth_getBlockByNumber", block_num)
+	}
 }
 
 func (self *SolidityContract) establish_event_listener() (string, error) {
