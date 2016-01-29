@@ -509,8 +509,6 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 		the_params = append(the_params,params)
 	}
 
-	self.logger.Debug("Debug", the_params)
-
 	// the_params[0] = params
 	body["params"] = the_params
 	jsonBytes, err = json.Marshal(body)
