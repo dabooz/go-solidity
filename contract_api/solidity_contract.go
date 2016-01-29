@@ -380,7 +380,7 @@ func (self *SolidityContract) log_stats(rpcResp *rpcGetTransactionResponse) {
 	// If logging blockchain stats, dump them to the log
 	if self.logBlockchainStats != "" {
 		block_num := rpcResp.Result.BlockNumber
-		_,_ = self.Call_rpc_api("eth_getBlockByNumber", block_num)
+		_,_ = self.Call_rpc_api("eth_getBlockByNumber", &MultiValueParams{block_num, false})
 	}
 }
 
@@ -493,14 +493,24 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 	var resp *http.Response
 	var jsonBytes []byte
 	var outBytes []byte
-	var the_params [1]interface{}
+	//var the_params [5]interface{}
+	the_params := make([]interface{}, 0, 5)
 
 	body := make(map[string]interface{})
 	body["jsonrpc"] = "2.0"
 	body["id"] = "1"
 	body["method"] = method
 
-	the_params[0] = params
+	switch params.(type) {
+	case MultiValueParams:
+		the_params = append(the_params,params.(MultiValueParams).a)
+		the_params = append(the_params,params.(MultiValueParams).b)
+	default:
+		the_params = append(the_params,params)
+	}
+
+
+	// the_params[0] = params
 	body["params"] = the_params
 	jsonBytes, err = json.Marshal(body)
 	
@@ -1302,3 +1312,9 @@ type RpcCompiledContract struct {
 	} `json:"info"`
 	Code string `json:"code"`
 }
+
+type MultiValueParams struct {
+	a, b interface{}
+}
+
+
