@@ -16,17 +16,18 @@ import (
 )
 
 type SolidityContract struct {
-	baseBody            map[string]string
-	name                string
-	from                string
-	rpcURL              string
-	compiledContract    *RpcCompiledContract
-	contractAddress     string
-	filter_id           string
-	noEventlistener     bool
-	tx_delay_toleration int
-	logger              *utility.DebugTrace
-	logBlockchainStats  string
+	baseBody              map[string]string
+	name                  string
+	from                  string
+	rpcURL                string
+	compiledContract      *RpcCompiledContract
+	contractAddress       string
+	filter_id             string
+	noEventlistener       bool
+	tx_delay_toleration   int
+	sync_delay_toleration int
+	logger                *utility.DebugTrace
+	logBlockchainStats    string
 }
 
 func SolidityContractFactory(name string) *SolidityContract {
@@ -41,9 +42,14 @@ func SolidityContractFactory(name string) *SolidityContract {
 	var delay int
 	var err error
 	if delay, err = strconv.Atoi(os.Getenv("mtn_soliditycontract_txdelay")); err != nil || delay == 0 {
-		delay = 60
+		delay = 180
 	}
 	sc.tx_delay_toleration = delay
+	var sync_delay int
+	if sync_delay, err = strconv.Atoi(os.Getenv("mtn_soliditycontract_syncdelay")); err != nil || delay == 0 {
+		sync_delay = 180
+	}
+	sc.sync_delay_toleration = sync_delay
 	sc.logBlockchainStats = os.Getenv("mtn_soliditycontract_logstats")
 	return sc
 }
@@ -186,6 +192,7 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 											if int(delta) < self.tx_delay_toleration {
 												self.logger.Debug("Debug", fmt.Sprintf("Waiting for transaction %v to run for %v seconds.", tx_address, delta))
 												time.Sleep(5000 * time.Millisecond)
+												err = self.check_eth_status()
 											} else {
 												err = &RPCError{fmt.Sprintf("RPC transaction receipt timed out for tx %v, invoking %v after %v seconds.", tx_address, method_name, delta)}
 											}
@@ -364,6 +371,7 @@ func (self *SolidityContract) get_contract(tx_address string) (string, error) {
 						if int(delta) < self.tx_delay_toleration {
 							self.logger.Debug("Debug", fmt.Sprintf("Waiting for transaction %v to run for %v seconds.", tx_address, delta))
 							time.Sleep(5000 * time.Millisecond)
+							err = self.check_eth_status()
 						} else {
 							err = &RPCError{fmt.Sprintf("RPC transaction receipt timed out for tx %v, after %v seconds.", tx_address, delta)}
 						}
@@ -1168,7 +1176,7 @@ func (self *SolidityContract) check_eth_status() error {
                 default:
             }
             delta := time.Now().Sub(start_timer).Seconds()
-			if int(delta) < self.tx_delay_toleration {
+			if int(delta) < self.sync_delay_toleration {
 				self.logger.Debug("Debug", fmt.Sprintf("Waiting for non-zero peer count for %v seconds.", delta))
 				time.Sleep(time.Duration(poll_wait)*1000*time.Millisecond)
 			} else {
@@ -1202,7 +1210,7 @@ func (self *SolidityContract) check_eth_status() error {
                 default:
             }
             delta := time.Now().Sub(start_timer).Seconds()
-			if int(delta) < self.tx_delay_toleration {
+			if int(delta) < self.sync_delay_toleration {
 				self.logger.Debug("Debug", fmt.Sprintf("Waiting for non-zero block count for %v seconds.", delta))
 				time.Sleep(time.Duration(poll_wait)*1000*time.Millisecond)
 			} else {
@@ -1229,11 +1237,11 @@ func (self *SolidityContract) check_eth_status() error {
                         default:
                     }
                     delta := time.Now().Sub(start_timer).Seconds()
-					if int(delta) < self.tx_delay_toleration {
+					if int(delta) < self.sync_delay_toleration {
 						self.logger.Debug("Debug", fmt.Sprintf("Waiting for syncing to complete for %v seconds.", delta))
 						time.Sleep(time.Duration(poll_wait)*1000*time.Millisecond)
 					} else {
-						err = &RPCError{fmt.Sprintf("Block count check timed out, after %v seconds.", delta)}
+						err = &RPCError{fmt.Sprintf("Sync check timed out, after %v seconds.", delta)}
 						break
 					}
                 }
