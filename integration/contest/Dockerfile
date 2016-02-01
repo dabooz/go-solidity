@@ -19,6 +19,7 @@ ENV mtn_soliditycontract=1
 ENV mtn_soliditycontract_logstats=1
 ENV mtn_soliditycontract_syncdelay=120
 ENV mtn_soliditycontract_txdelay=120
+ENV mtn_soliditycontract_integration=1
 RUN make
 RUN cp /tmp/bin/device /usr/bin/mtn-device_owner
 RUN cp /tmp/bin/rest_container_provider /usr/bin/mtn-rest_container_provider

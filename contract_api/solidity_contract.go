@@ -26,6 +26,7 @@ type SolidityContract struct {
 	noEventlistener       bool
 	tx_delay_toleration   int
 	sync_delay_toleration int
+	integration_test      int
 	logger                *utility.DebugTrace
 	logBlockchainStats    string
 }
@@ -46,10 +47,15 @@ func SolidityContractFactory(name string) *SolidityContract {
 	}
 	sc.tx_delay_toleration = delay
 	var sync_delay int
-	if sync_delay, err = strconv.Atoi(os.Getenv("mtn_soliditycontract_syncdelay")); err != nil || delay == 0 {
+	if sync_delay, err = strconv.Atoi(os.Getenv("mtn_soliditycontract_syncdelay")); err != nil || sync_delay == 0 {
 		sync_delay = 180
 	}
 	sc.sync_delay_toleration = sync_delay
+	var integration_test int
+	if integration_test, err = strconv.Atoi(os.Getenv("mtn_soliditycontract_integration")); err != nil || integration_test == 0 {
+		integration_test = 0
+	}
+	sc.integration_test = integration_test
 	sc.logBlockchainStats = os.Getenv("mtn_soliditycontract_logstats")
 	return sc
 }
@@ -1153,7 +1159,7 @@ func (self *SolidityContract) check_eth_status() error {
     poll_wait := 5
 
     start_timer := time.Now()
-    for !net_done {
+    for !net_done && self.integration_test == 0 {
         if res,err = self.Call_rpc_api("net_peerCount",nil); err != nil {
             err = &RPCError{fmt.Sprintf("RPC invocation of net_peerCount returned an error: %v.",err)}
             break
