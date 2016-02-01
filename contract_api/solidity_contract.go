@@ -1181,10 +1181,13 @@ func (self *SolidityContract) check_eth_status() error {
                     }
                 default:
             }
+            if net_done {
+            	break
+            }
             delta := time.Now().Sub(start_timer).Seconds()
 			if int(delta) < self.sync_delay_toleration {
-				self.logger.Debug("Debug", fmt.Sprintf("Waiting for non-zero peer count for %v seconds.", delta))
 				time.Sleep(time.Duration(poll_wait)*1000*time.Millisecond)
+				self.logger.Debug("Debug", fmt.Sprintf("Waiting for non-zero peer count for %v seconds.", delta))
 			} else {
 				err = &RPCError{fmt.Sprintf("Peer count check timed out, after %v seconds.", delta)}
 				break
@@ -1215,10 +1218,13 @@ func (self *SolidityContract) check_eth_status() error {
                     }
                 default:
             }
+            if block_done {
+            	break
+            }
             delta := time.Now().Sub(start_timer).Seconds()
 			if int(delta) < self.sync_delay_toleration {
-				self.logger.Debug("Debug", fmt.Sprintf("Waiting for non-zero block count for %v seconds.", delta))
 				time.Sleep(time.Duration(poll_wait)*1000*time.Millisecond)
+				self.logger.Debug("Debug", fmt.Sprintf("Waiting for non-zero block count for %v seconds.", delta))
 			} else {
 				err = &RPCError{fmt.Sprintf("Block count check timed out, after %v seconds.", delta)}
 				break
@@ -1242,10 +1248,13 @@ func (self *SolidityContract) check_eth_status() error {
                             }
                         default:
                     }
+                    if sync_done {
+            			break
+            		}
                     delta := time.Now().Sub(start_timer).Seconds()
 					if int(delta) < self.sync_delay_toleration {
-						self.logger.Debug("Debug", fmt.Sprintf("Waiting for syncing to complete for %v seconds.", delta))
 						time.Sleep(time.Duration(poll_wait)*1000*time.Millisecond)
+						self.logger.Debug("Debug", fmt.Sprintf("Waiting for syncing to complete for %v seconds.", delta))
 					} else {
 						err = &RPCError{fmt.Sprintf("Sync check timed out, after %v seconds.", delta)}
 						break
