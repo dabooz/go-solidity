@@ -297,6 +297,10 @@ func (self *SolidityContract) Set_from(f string) {
 	self.from = f
 }
 
+func (self *SolidityContract) Set_rpcurl(rpc string) {
+	self.rpcURL = rpc
+}
+
 func (self *SolidityContract) Set_skip_eventlistener() {
 	self.noEventlistener = true
 }
