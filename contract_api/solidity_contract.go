@@ -298,7 +298,9 @@ func (self *SolidityContract) Set_from(f string) {
 }
 
 func (self *SolidityContract) Set_rpcurl(rpc string) {
-	self.rpcURL = rpc
+	if rpc != "" {
+		self.rpcURL = rpc
+	}
 }
 
 func (self *SolidityContract) Set_skip_eventlistener() {
