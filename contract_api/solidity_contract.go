@@ -525,8 +525,8 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 
 	switch params.(type) {
 	case *MultiValueParams:
-		the_params = append(the_params,params.(*MultiValueParams).a)
-		the_params = append(the_params,params.(*MultiValueParams).b)
+		the_params = append(the_params,params.(*MultiValueParams).A)
+		the_params = append(the_params,params.(*MultiValueParams).B)
 	default:
 		the_params = append(the_params,params)
 	}
@@ -1467,7 +1467,7 @@ type RpcCompiledContract struct {
 }
 
 type MultiValueParams struct {
-	a, b interface{}
+	A, B interface{}
 }
 
 
