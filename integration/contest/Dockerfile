@@ -30,7 +30,7 @@ WORKDIR /tmp/src
 RUN go get github.com/gorilla/mux
 RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN-research/marketplace.git
 #WORKDIR /tmp/src/marketplace
-#RUN git checkout indefinite
+#RUN git checkout rpcconfig
 WORKDIR /tmp/src/marketplace/gorest
 RUN make
 RUN cp /tmp/bin/gorest /usr/bin/mtn-gorest
