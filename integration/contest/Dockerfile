@@ -10,6 +10,18 @@ RUN mkdir /tmp/pkg
 RUN mkdir /tmp/src/repo.hovitos.engineering
 RUN mkdir /tmp/src/repo.hovitos.engineering/MTN
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN
+
+RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/smartcontract-monitor.git
+RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/go-eth-events.git
+RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/go-eth-rpc.git
+
+WORKDIR /tmp/src/repo.hovitos.engineering/MTN/smartcontract-monitor/docker/fs/etc
+COPY monitor /etc/
+
+WORKDIR /tmp/src/repo.hovitos.engineering/MTN/smartcontract-monitor
+RUN go build && cp ./smartcontract-monitor /usr/bin/smartcontract-monitor
+
+WORKDIR /tmp/src/repo.hovitos.engineering/MTN
 RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/go-solidity.git
 #WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity
 #RUN git checkout syncup

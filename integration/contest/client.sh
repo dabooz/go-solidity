@@ -69,6 +69,9 @@ if [ "$DRC" -ne 0 ]; then
     echo "$DRC"
 fi
 
+echo "starting monitor"
+smartcontract-monitor -v=5 -alsologtostderr=true $DIRADDR $ETHERBASE >/tmp/monitor.log 2>&1 &
+
 echo "Starting Exchange REST Server."
 mtn-gorest $DIRADDR $ETHERBASE >/tmp/restapi.log 2>&1 &
 

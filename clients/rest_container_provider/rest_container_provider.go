@@ -430,9 +430,9 @@ func invoke_rest(method string, url string, body []byte, outstruct interface{}) 
     req, err := http.NewRequest(method, base_url + url, bytes.NewBuffer(body))
     req.Header.Set("Content-Type", "application/json")
 
+    req.Close = true            // work around to ensure that Go doesn't get connections confused. Supposed to be fixed in Go 1.6.
     client := &http.Client{}
     rawresp, err := client.Do(req)
-    req.Close = true            // work around to ensure that Go doesn't get connections confused. Supposed to be fixed in Go 1.6.
     if err != nil {
         return err
     }
