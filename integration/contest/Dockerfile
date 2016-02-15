@@ -3,6 +3,7 @@ FROM ethereum
 COPY client.sh /root/
 COPY tempssh /root/.ssh/
 
+ENV GOPATH /tmp
 WORKDIR /tmp
 RUN mkdir /tmp/src
 RUN mkdir /tmp/bin
@@ -14,9 +15,10 @@ WORKDIR /tmp/src/repo.hovitos.engineering/MTN
 RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/smartcontract-monitor.git
 RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/go-eth-events.git
 RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/go-eth-rpc.git
+RUN go get github.com/golang/glog
 
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/smartcontract-monitor/docker/fs/etc
-COPY monitor /etc/
+RUN cp -Rfa ./monitor /etc/
 
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/smartcontract-monitor
 RUN go build && cp ./smartcontract-monitor /usr/bin/smartcontract-monitor
@@ -26,7 +28,7 @@ RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/go-solidity.git
 #WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity
 #RUN git checkout syncup
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity/clients
-ENV GOPATH /tmp
+
 ENV mtn_soliditycontract=1
 ENV mtn_soliditycontract_logstats=1
 ENV mtn_soliditycontract_syncdelay=120
