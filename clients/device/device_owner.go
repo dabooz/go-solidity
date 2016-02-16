@@ -124,7 +124,7 @@ func main() {
     p2 = append(p2,"monthly_cap_KB")
     p2 = append(p2,"3278604")
     p2 = append(p2,"hourly_cost_bacon")
-    p2 = append(p2,"2")
+    p2 = append(p2,"12")
     p2 = append(p2,"sdr")
     p2 = append(p2,"RTL2832,R820T2")
     p2 = append(p2,"is_seed_enabled")
