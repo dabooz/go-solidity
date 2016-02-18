@@ -299,7 +299,7 @@ func main() {
                         log.Printf("Governor has cancelled.\n")
                         cancel = true
                     } else {
-                        x := rand.Intn(50)
+                        x := rand.Intn(100)
                         if x <= 1 {
                             log.Printf("Device is cancelling.\n")
                             if _,err = sc.Invoke_method("reject_container",nil); err != nil {
