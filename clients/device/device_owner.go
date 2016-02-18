@@ -302,6 +302,11 @@ func main() {
                         x := rand.Intn(50)
                         if x <= 1 {
                             log.Printf("Device is cancelling.\n")
+                            if _,err = sc.Invoke_method("reject_container",nil); err != nil {
+                                log.Printf("...terminating, could not reject container: %v\n",err)
+                                os.Exit(1)
+                            }
+                            log.Printf("Contract rejected.\n")
                             cancel = true
                         }
                     }
