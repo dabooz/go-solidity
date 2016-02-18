@@ -3,8 +3,9 @@ package main
 import (
     "encoding/json"
     "log"
-    "repo.hovitos.engineering/MTN/go-solidity/contract_api"
+    "math/rand"
     "os"
+    "repo.hovitos.engineering/MTN/go-solidity/contract_api"
     "strings"
     "time"
     )
@@ -18,6 +19,7 @@ func main() {
     }
 
     err := error(nil)
+    rand.Seed(time.Now().UnixNano())
 
     dir_contract := os.Args[1]
     device_owner := os.Args[2]
@@ -296,6 +298,12 @@ func main() {
                     if container_provider == "0x0000000000000000000000000000000000000000" {
                         log.Printf("Governor has cancelled.\n")
                         cancel = true
+                    } else {
+                        x := rand.Intn(50)
+                        if x <= 1 {
+                            log.Printf("Device is cancelling.\n")
+                            cancel = true
+                        }
                     }
 
                 } // looping for governor cancel
