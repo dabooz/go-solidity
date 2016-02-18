@@ -70,6 +70,8 @@ contract container_executor {
             clear_container();
             return true;
         } else {
+            // cancel_escrow is self guarding WRT tx.origin so it cant be spoofed
+            piggy_bank.cancel_escrow(tx.origin, owner, this, _amount);
             return false;
         }
     }
