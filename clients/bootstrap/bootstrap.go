@@ -101,8 +101,10 @@ func main() {
 
             // Saving directory address to file system
 
-            _ = ioutil.WriteFile("directory",[]byte(dsc.Get_contract_address()[2:]),0644)
-            fmt.Printf("Wrote directory address to file system.\n")
+            if dir_ver == 0 {
+                _ = ioutil.WriteFile("directory",[]byte(dsc.Get_contract_address()[2:]),0644)
+                fmt.Printf("Wrote directory address to file system.\n")
+            }
 
             fmt.Println("Successfully completed MTN contract bootstrap.")
 
