@@ -15,8 +15,8 @@ func main() {
 
     // ================== Initialization =============================================
     
-    input_dirAddress := flag.String("dirAddr", "", "Directory contract address")
-    input_version := flag.Int("version", 0, "Contract version to track")
+    input_dirAddress := flag.String("dirAddr", "", "Directory contract address, not required in production")
+    input_version := flag.Int("version", 0, "Contract version to work with")
     input_contract := flag.String("contract", "", "Contract address to deregister")
 
     flag.Parse()
@@ -58,7 +58,8 @@ func main() {
 
     // ================== Mainline =====================================================
 
-    // Find the address of the other contracts from the directory
+    // Load the directory contract definition so that we can use it to find the
+    // device registry contract address.
     dir := contract_api.SolidityContractFactory("directory")
     dir.Set_skip_eventlistener()
     dir.Set_contract_address(dirAddress)
@@ -94,6 +95,7 @@ func main() {
                     var array_attrib []string
                     array_attrib = desc.([]string)
                     if len(array_attrib) > 0 {
+                        // Now deregister the target contract address
                         glog.Infof("Deleting contract with attributes: %v", array_attrib)
                         p := make([]interface{},0,10)
                         p = append(p,contractAddress)
