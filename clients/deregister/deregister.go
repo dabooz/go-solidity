@@ -94,10 +94,18 @@ func main() {
                     var array_attrib []string
                     array_attrib = desc.([]string)
                     if len(array_attrib) > 0 {
-                        glog.Infof("Description: %v", array_attrib)
+                        glog.Infof("Deleting contract with attributes: %v", array_attrib)
+                        p := make([]interface{},0,10)
+                        p = append(p,contractAddress)
+                        if desc,err := dr.Invoke_method("deregister",p); err != nil {
+                            glog.Errorf("Debug: Error deregistering %v in device registry: %v\n", contractAddress, err)
+                            panic(err)
+                        } else {
+                            log.Infof("Device deregistered.")
+                        }
                     }
                 default:
-                    glog.Infof("Description is not interface: %v", desc)
+                    glog.Errorf("Description is not interface: %v", desc)
             }
         }
     }
