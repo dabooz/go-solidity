@@ -91,13 +91,13 @@ func main() {
         } else {
             switch desc.(type) {
                 case interface{}:
-                    var array_attrib []interface{}
-                    array_attrib = desc.([]interface{})
+                    var array_attrib []string
+                    array_attrib = desc.([]string)
                     if len(array_attrib) > 0 {
                         glog.Infof("Description: %v", array_attrib)
                     }
                 default:
-                    glog.Infof("Description is not array of interface: %v", desc)
+                    glog.Infof("Description is not interface: %v", desc)
             }
         }
     }
