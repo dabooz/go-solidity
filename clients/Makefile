@@ -24,5 +24,5 @@ build_rest_cp: rest_container_provider/rest_container_provider.go
 build_dir_test: directory_test/test_directory.go
 	cd directory_test; make
 
-build_deregister: deregister/deregsiter.go
+build_deregister: deregister/deregister.go
 	cd deregister; make
