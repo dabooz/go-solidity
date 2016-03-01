@@ -16,7 +16,7 @@ func main() {
     // ================== Initialization =============================================
     
     input_dirAddress := flag.String("dirAddr", "", "Directory contract address")
-    input_version := flag.Int("version", -1, "Contract version to track")
+    input_version := flag.Int("version", 0, "Contract version to track")
     input_contract := flag.String("contract", "", "Contract address to deregister")
 
     flag.Parse()
@@ -35,10 +35,7 @@ func main() {
     glog.Infof("Using directory address: %v", dirAddress)
 
     glog.Infof("Input version: %v", *input_version)
-    version := 0
-    if *input_version != -1 {
-        version = *input_version
-    }
+    version := *input_version
     glog.Infof("Working with contracts from version %v", version)
 
     ethAccount := ""
