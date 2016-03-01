@@ -97,11 +97,11 @@ func main() {
                         glog.Infof("Deleting contract with attributes: %v", array_attrib)
                         p := make([]interface{},0,10)
                         p = append(p,contractAddress)
-                        if desc,err := dr.Invoke_method("deregister",p); err != nil {
+                        if _,err := dr.Invoke_method("deregister",p); err != nil {
                             glog.Errorf("Debug: Error deregistering %v in device registry: %v\n", contractAddress, err)
                             panic(err)
                         } else {
-                            log.Infof("Device deregistered.")
+                            glog.Infof("Device deregistered.")
                         }
                     }
                 default:
