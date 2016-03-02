@@ -89,7 +89,7 @@ WHISPERP=$(curl -sL http://localhost:8545 -X POST --data '{"jsonrpc":"2.0","meth
 
 echo $WHISPERP
 
-# mtn-rest_container_provider $WHISPERP $ETHERBASE 30 >/tmp/glensung.log 2>&1 &
+mtn-rest_container_provider $WHISPERP $ETHERBASE 30 >/tmp/glensung.log 2>&1 &
 
 echo "all done"
 while :
