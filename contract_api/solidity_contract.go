@@ -471,7 +471,12 @@ func (self *SolidityContract) get_contract_as_string() (string, error) {
 	contract_string, cBytes, con_file, con_path, err := "", []byte{}, "", "", error(nil)
 
 	con_file = self.name + ".sol"
-	con_path = os.Getenv("GOPATH") + "/src/repo.hovitos.engineering/MTN/go-solidity/contracts/" + con_file
+	con_path = os.Getenv("mtn_contractpath")
+	if  con_path == "" {
+		con_path = os.Getenv("GOPATH") + "/src/repo.hovitos.engineering/MTN/go-solidity/contracts/" + con_file
+	} else {
+		con_path += con_file
+	}
 	cBytes, err = ioutil.ReadFile(con_path)
 	contract_string = string(cBytes)
 
