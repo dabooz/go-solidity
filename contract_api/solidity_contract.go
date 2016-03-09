@@ -162,7 +162,9 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 	}
 
 	// Let's make sure our ethereum instance is still working correctly
-	err = self.check_eth_status()
+	if eth_method == "eth_sendTransaction" {
+		err = self.check_eth_status()
+	}
 
 	if err == nil {
 
