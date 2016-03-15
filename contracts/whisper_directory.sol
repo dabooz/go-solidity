@@ -9,7 +9,8 @@ contract whisper_directory {
     // Events represent a history of eveything that happened in the directory.
     enum event_codes {
         add_entry_event_code,
-        delete_entry_event_code
+        delete_entry_event_code,
+        admin_delete_entry_event_code
     }
 
     event AddEntry(uint indexed _eventcode, address indexed _adder, string _whisper_account) anonymous;
@@ -43,7 +44,19 @@ contract whisper_directory {
         delete whisper_accounts[tx.origin];
         return true;
     }
-    
+
+    // Remove a specific entry from the directory. The admin or owner can remove
+    // any entry.
+    function delete_entry_admin(address _account) returns (bool r) {
+        if (tx.origin == owner) {
+            var deleted_wa = whisper_accounts[_account];
+            DeleteEntry(uint(event_codes.admin_delete_entry_event_code), _account, deleted_wa);
+            delete whisper_accounts[_account];
+            return true;
+        } else {
+            return false;
+        }
+    }
     // Used to get rid of the contract
     function kill() {
         if (msg.sender == owner) suicide(owner);
