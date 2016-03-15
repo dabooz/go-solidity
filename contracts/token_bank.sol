@@ -21,7 +21,7 @@ contract token_bank {
     // Holds the loan balances of all participants.
     mapping (address => uint) loans;
 
-    uint constant loan_limit = 100000;
+    uint constant loan_limit = 100000000;
 
     // This represents the state of an escrow proposal
     struct proposal {
@@ -77,7 +77,7 @@ contract token_bank {
     // Constructor, runs when this contract is deployed (aka instantiated)
     function token_bank() {
         minter = msg.sender;
-        total_currency = 1000000000000000;
+        total_currency = 1000000000000000000000;
     }
 
     // Send currency to another party
