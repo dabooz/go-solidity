@@ -105,9 +105,8 @@ func main() {
             if dir_ver == 0 {
                 con_addr := dsc.Get_contract_address()
                 if strings.HasPrefix(con_addr,"0x") {
-                    _ = ioutil.WriteFile("directory",[]byte(dsc.Get_contract_address()),0644)
+                    _ = ioutil.WriteFile("directory",[]byte(con_addr[2:]),0644)
                 } else {
-                    con_addr = "0x"+con_addr
                     _ = ioutil.WriteFile("directory",[]byte(con_addr),0644)
                 }
                 fmt.Printf("Wrote directory address to file system.\n")
