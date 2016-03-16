@@ -290,6 +290,29 @@ func main() {
         os.Exit(1)
     }
 
+    fmt.Printf("Add an entry for a long string.\n")
+    p = make([]interface{},0,10)
+    p = append(p,"0x04bd30d6872ae1396d537195d76482d8828682673221d41c8420bd07d043b72851d4a7cb9a7d0bcb8360393e27396bc643a75ca7aaa65380becf68e4727257de57")
+    if _,err := wd.Invoke_method("add_entry",p); err == nil {
+        fmt.Printf("Added an entry.\n")
+    } else {
+        fmt.Printf("Error invoking whisper add_entry: %v\n",err)
+        os.Exit(1)
+    }
+
+    fmt.Printf("Get your current entry, should be 0x04bd30d6872ae1396d537195d76482d8828682673221d41c8420bd07d043b72851d4a7cb9a7d0bcb8360393e27396bc643a75ca7aaa65380becf68e4727257de57.\n")
+    p = make([]interface{},0,10)
+    p = append(p,registry_owner)
+    if wa,err := wd.Invoke_method("get_entry",p); err == nil {
+        fmt.Printf("Received %v.\n",wa)
+        if wa.(string) != "0x04bd30d6872ae1396d537195d76482d8828682673221d41c8420bd07d043b72851d4a7cb9a7d0bcb8360393e27396bc643a75ca7aaa65380becf68e4727257de57" {
+            os.Exit(1)
+        }
+    } else {
+        fmt.Printf("Error invoking whisper get_entry: %v\n",err)
+        os.Exit(1)
+    }
+
     fmt.Printf("Update your entry with 0x000012345678.\n")
     p = make([]interface{},0,10)
     p = append(p,"0x000012345678")
