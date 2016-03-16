@@ -61,6 +61,11 @@ fi
 
 DIRADDR=$(cat directory)
 
+export CMTN_DIRECTORY_VERSION=999
+echo "Bootstrapping MTN smart contracts again."
+mtn-bootstrap $ETHERBASE $DIRADDR >/tmp/bootstrap2.log 2>&1
+
+
 echo "Running directory tests."
 mtn-directory_test $DIRADDR $ETHERBASE 30 >/tmp/directory_test.log 2>&1
 DRC=$?
