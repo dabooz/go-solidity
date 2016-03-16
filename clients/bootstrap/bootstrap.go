@@ -108,7 +108,7 @@ func main() {
                     _ = ioutil.WriteFile("directory",[]byte(dsc.Get_contract_address()),0644)
                 } else {
                     con_addr = "0x"+con_addr
-                    _ = ioutil.WriteFile("directory",[]byte(dsc.Get_contract_address()),0644)
+                    _ = ioutil.WriteFile("directory",[]byte(con_addr),0644)
                 }
                 fmt.Printf("Wrote directory address to file system.\n")
             }
