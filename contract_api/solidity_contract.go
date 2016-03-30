@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"os"
 	"reflect"
 	"repo.hovitos.engineering/MTN/go-solidity/utility"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -29,6 +31,34 @@ type SolidityContract struct {
 	integration_test      int
 	logger                *utility.DebugTrace
 	logBlockchainStats    string
+}
+
+type blockSync struct {
+	lastBlockTime  int64	// The unix time in seconds when blockNumber was last updated
+	blockNumber    string 	// The last block that was seen
+}
+
+var global_block_state_lock sync.Mutex
+var global_block_state blockSync
+var no_recent_blocks int
+
+func update_block(blockNumber string) {
+	global_block_state_lock.Lock()
+	defer global_block_state_lock.Unlock()
+
+	if global_block_state.blockNumber == "" || blockNumber != global_block_state.blockNumber {
+		global_block_state.lastBlockTime = time.Now().Unix()
+		global_block_state.blockNumber = blockNumber
+	}
+}
+
+func blocks_stopped() bool {
+	last_block_time := global_block_state.lastBlockTime
+	delta := time.Now().Unix()-last_block_time
+	if int(delta) >= no_recent_blocks {
+		return true
+	}
+	return false
 }
 
 func SolidityContractFactory(name string) *SolidityContract {
@@ -56,6 +86,11 @@ func SolidityContractFactory(name string) *SolidityContract {
 		integration_test = 0
 	}
 	sc.integration_test = integration_test
+	
+	if no_recent_blocks, err = strconv.Atoi(os.Getenv("mtn_soliditycontract_no_recent_blocks")); err != nil || no_recent_blocks == 0 {
+		no_recent_blocks = 300
+	}
+
 	sc.logBlockchainStats = os.Getenv("mtn_soliditycontract_logstats")
 	return sc
 }
@@ -194,6 +229,7 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 										if rpcTResp.Result.BlockNumber != "" {
 											result = 0
 											found = true
+											update_block(rpcTResp.Result.BlockNumber)
 											self.log_stats(rpcTResp)
 										} else {
 											delta := time.Now().Sub(start_timer).Seconds()
@@ -341,17 +377,20 @@ func (self *SolidityContract) create_contract() (string, error) {
 	result, out, err := "", "", error(nil)
 	var rpcResp *rpcResponse = new(rpcResponse)
 
-	params := make(map[string]string)
-	params["from"] = self.from
-	params["gas"] = "0x16e360"
-	params["data"] = self.compiledContract.Code
+	if err = self.check_eth_status(); err == nil {
 
-	if out, err = self.Call_rpc_api("eth_sendTransaction", params); err == nil {
-		if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
-			if rpcResp.Error.Message != "" {
-				err = &RPCError{fmt.Sprintf("RPC contract deploy of %v returned an error: %v.", self.name, rpcResp.Error.Message)}
-			} else {
-				result = rpcResp.Result.(string)
+		params := make(map[string]string)
+		params["from"] = self.from
+		params["gas"] = "0x16e360"
+		params["data"] = self.compiledContract.Code
+
+		if out, err = self.Call_rpc_api("eth_sendTransaction", params); err == nil {
+			if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
+				if rpcResp.Error.Message != "" {
+					err = &RPCError{fmt.Sprintf("RPC contract deploy of %v returned an error: %v.", self.name, rpcResp.Error.Message)}
+				} else {
+					result = rpcResp.Result.(string)
+				}
 			}
 		}
 	}
@@ -379,6 +418,7 @@ func (self *SolidityContract) get_contract(tx_address string) (string, error) {
 					if rpcResp.Result.ContractAddress != "" {
 						result = rpcResp.Result.ContractAddress
 						found = true
+						update_block(rpcResp.Result.BlockNumber)
 						self.log_stats(rpcResp)
 					} else {
 						delta := time.Now().Sub(start_timer).Seconds()
@@ -1227,6 +1267,7 @@ func (self *SolidityContract) check_eth_status() error {
                 case string:
                     if rpcResp.Result != "0x0" {
                         block_done = true
+                        update_block(rpcResp.Result.(string))
                         break
                     }
                 default:
@@ -1282,6 +1323,39 @@ func (self *SolidityContract) check_eth_status() error {
             break
         }
     }
+
+    if err == nil {
+        if res,err = self.Call_rpc_api("eth_getBalance",&MultiValueParams{self.from, "latest"}); err == nil {
+	        if err = json.Unmarshal([]byte(res),rpcResp); err == nil {
+	            if rpcResp.Error.Message != "" {
+	                err = &RPCError{fmt.Sprintf("RPC invocation of eth_getBalance returned an error: %v.",rpcResp.Error.Message)}
+	            } else {
+	                switch rpcResp.Result.(type) {
+	                    case string:
+							bal := big.NewInt(0)
+							bal_hex_str := rpcResp.Result.(string)
+					        // the math/big library doesn't like leading "0x" on hex strings
+					        bal.SetString(bal_hex_str[2:],16)
+	                        if bal.Cmp(big.NewInt(1500000)) < 1 {
+	                            err = &RPCError{fmt.Sprintf("Out of ether, have: %v.",rpcResp.Result)}
+	                        }
+	                    default:
+	                }
+
+	            }
+	        } else {
+	            err = &RPCError{fmt.Sprintf("RPC invocation of eth_getBalance returned undecodable response %v, error: %v.",res,err)}
+	        }
+	    } else {
+	        err = &RPCError{fmt.Sprintf("RPC invocation of eth_getBalance returned an error: %v.",err)}
+	    }
+	}
+
+    if err == nil && blocks_stopped() {
+        err = &RPCError{fmt.Sprintf("No new blocks received in last %v seconds. Last block was %v.", no_recent_blocks, global_block_state.blockNumber)}
+    }
+
+    self.logger.Debug("Debug", fmt.Sprintf("Global block %v", global_block_state))
 
 	if err != nil {
 		self.logger.Debug("Error", err.Error())

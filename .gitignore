@@ -1,4 +1,6 @@
 # git ignores for this project
+integration/docker/fs/root/.ssh/id_*
 compose/
 *.tar
+tempfs/
 tempssh/

@@ -10,6 +10,14 @@ cd /root
 rm -rf .ethereum .ethash
 mkdir .ethereum # to avoid geth y/N question
 
+# get a prebuilt DAG that ethereum needs for mining to avoid 7 mins of dynamic generation time.
+echo "Move the DAG into place if there is one."
+mkdir .ethash
+cd .ethash
+mv /tmp/full-R23-0000000000000000 . 2>/dev/null || :
+touch full-R23-0000000000000000
+cd ..
+
 echo $PASSWD >passwd
 geth --password passwd account new | perl -p -e 's/[{}]//g' | awk '{print $NF}' >accounts
 
@@ -45,6 +53,11 @@ do
 done
 echo $BALANCE
 
+# Mining is running. The on-demand miner will shut it down and then look for pending transactions.
+echo "Starting on-demand miner."
+MS=$(geth --exec "miner.stop()" attach)
+./odminer.sh >/tmp/odminer.log 2>&1 &
+
 echo "Unlocking account for bootstrap."
 while ! geth --exec personal.unlockAccount\(\"$ETHERBASE\",\"$PASSWD\"\) attach
 do
@@ -64,7 +77,7 @@ DIRADDR=$(cat directory)
 export CMTN_DIRECTORY_VERSION=999
 echo "Bootstrapping MTN smart contracts again."
 mtn-bootstrap $ETHERBASE $DIRADDR >/tmp/bootstrap2.log 2>&1
-
+export CMTN_DIRECTORY_VERSION=0
 
 echo "Running directory tests."
 mtn-directory_test $DIRADDR $ETHERBASE 30 >/tmp/directory_test.log 2>&1
@@ -82,12 +95,14 @@ mtn-gorest $DIRADDR $ETHERBASE >/tmp/restapi.log 2>&1 &
 
 sleep 5
 
+#export mtn_soliditycontract_no_recent_blocks=5
 echo "Starting Device simulator."
 WHISPERD=$(curl -sL http://localhost:8545 -X POST --data '{"jsonrpc":"2.0","method":"shh_newIdentity","params":[],"id":1}' | jq -r '.result')
 
 echo $WHISPERD
 
 mtn-device_owner $DIRADDR $ETHERBASE $WHISPERD >/tmp/device_owner.log 2>&1 &
+#export mtn_soliditycontract_no_recent_blocks=300
 
 echo "Starting Glensung simulator."
 WHISPERP=$(curl -sL http://localhost:8545 -X POST --data '{"jsonrpc":"2.0","method":"shh_newIdentity","params":[],"id":1}' | jq -r '.result')

@@ -1,15 +1,15 @@
 FROM ethereum
 
 COPY client.sh /root/
+COPY odminer.sh /root/
 COPY tempssh /root/.ssh/
+COPY tempfs /tmp/
 
 ENV GOPATH /tmp
 WORKDIR /tmp
-RUN mkdir /tmp/src
 RUN mkdir /tmp/bin
 RUN mkdir /tmp/pkg
-RUN mkdir /tmp/src/repo.hovitos.engineering
-RUN mkdir /tmp/src/repo.hovitos.engineering/MTN
+
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN
 
 RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/smartcontract-monitor.git
@@ -20,19 +20,14 @@ RUN go get github.com/golang/glog
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/smartcontract-monitor/docker/fs/etc
 RUN cp -Rfa ./monitor /etc/
 
-WORKDIR /tmp/src/repo.hovitos.engineering/MTN
-RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN/go-solidity.git
-
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/smartcontract-monitor
 RUN go build && cp ./smartcontract-monitor /usr/bin/smartcontract-monitor
 
 ENV mtn_soliditycontract=1
-ENV mtn_soliditycontract_logstats=1
 ENV mtn_soliditycontract_syncdelay=120
 ENV mtn_soliditycontract_txdelay=120
 ENV mtn_soliditycontract_integration=1
-#WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity
-#RUN git checkout syncup
+
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity/clients
 RUN make
 RUN cp /tmp/bin/device /usr/bin/mtn-device_owner
@@ -43,12 +38,12 @@ RUN cp /tmp/bin/deregister /usr/bin/mtn-deregister
 
 WORKDIR /tmp/src
 RUN go get github.com/gorilla/mux
-RUN git clone ssh://git@repo.hovitos.engineering:10022/MTN-research/marketplace.git
-#WORKDIR /tmp/src/marketplace
-#RUN git checkout rpcconfig
+
 WORKDIR /tmp/src/marketplace/gorest
 RUN make
 RUN cp /tmp/bin/gorest /usr/bin/mtn-gorest
+
+WORKDIR /tmp
 
 ENTRYPOINT ["sh", "/root/client.sh"]
 
