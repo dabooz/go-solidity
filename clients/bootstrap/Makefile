@@ -1,4 +1,7 @@
 # bootstrap make
 
-default:
+default: jsonFiles
 	go install
+
+jsonFiles:
+	./json_newer.sh

@@ -24,8 +24,8 @@ WORKDIR /tmp/src/repo.hovitos.engineering/MTN/smartcontract-monitor
 RUN go build && cp ./smartcontract-monitor /usr/bin/smartcontract-monitor
 
 ENV mtn_soliditycontract=1
-ENV mtn_soliditycontract_syncdelay=120
-ENV mtn_soliditycontract_txdelay=120
+ENV mtn_soliditycontract_syncdelay=180
+ENV mtn_soliditycontract_txdelay=180
 ENV mtn_soliditycontract_integration=1
 
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity/clients

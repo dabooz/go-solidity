@@ -1,0 +1,4 @@
+compilecon:
+  image: compilecon
+  environment:
+   - PASSWD=bob

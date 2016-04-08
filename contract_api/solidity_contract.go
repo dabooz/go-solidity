@@ -482,22 +482,35 @@ func (self *SolidityContract) compile_contract(contract_string string) (*RpcComp
 	err := error(nil)
 	var out string
 	var result *RpcCompiledContract
-	var rpcResp *rpcCompilerResponse = new(rpcCompilerResponse)
 
-	if out, err = self.Call_rpc_api("eth_compileSolidity", contract_string); err == nil {
-		if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
-			if rpcResp.Error.Message != "" {
-				err = &RPCError{fmt.Sprintf("RPC compile invocation of %v returned an error: %v.", self.name, rpcResp.Error.Message)}
-			} else {
-				if _, ok := rpcResp.Result[self.name]; !ok {
-					self.logger.Debug("Debug", rpcResp)
-					err = &RPCError{fmt.Sprintf("RPC compile invocation of did not return output for %v.", self.name)}
+	if jBytes, err := self.get_precompiled_json(); err != nil {
+		self.logger.Debug("Debug", fmt.Sprintf("Error reading precompiled json file for %v, %v.", self.name, err))
+
+		// Falling back to use the solidity compiler on demand
+		var rpcResp *rpcCompilerResponse = new(rpcCompilerResponse)
+
+		if out, err = self.Call_rpc_api("eth_compileSolidity", contract_string); err == nil {
+			if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
+				if rpcResp.Error.Message != "" {
+					err = &RPCError{fmt.Sprintf("RPC compile invocation of %v returned an error: %v.", self.name, rpcResp.Error.Message)}
 				} else {
-					//self.logger.Debug("Debug",rpcResp.Result[self.name])
-					r := rpcResp.Result[self.name]
-					result = &r
+					if _, ok := rpcResp.Result[self.name]; !ok {
+						self.logger.Debug("Debug", rpcResp)
+						err = &RPCError{fmt.Sprintf("RPC compile invocation of did not return output for %v.", self.name)}
+					} else {
+						//self.logger.Debug("Debug",rpcResp.Result[self.name])
+						r := rpcResp.Result[self.name]
+						self.capture_compiled_json(rpcResp.Result[self.name])
+						result = &r
+					}
 				}
 			}
+		}
+
+	} else {
+		result = new(RpcCompiledContract)
+		if err = json.Unmarshal(jBytes, result); err != nil {
+			err = &RPCError{fmt.Sprintf("RPC decode of precompiled contract %v returned an error: %v.", self.name, err)}
 		}
 	}
 
@@ -506,6 +519,30 @@ func (self *SolidityContract) compile_contract(contract_string string) (*RpcComp
 	}
 	self.logger.Debug("Exit ", result)
 	return result, err
+}
+
+func (self *SolidityContract) get_precompiled_json() ([]byte,error) {
+	json_file := self.name + ".json"
+	json_path := os.Getenv("mtn_contractpath")
+	if  json_path == "" {
+		json_path = os.Getenv("GOPATH") + "/src/repo.hovitos.engineering/MTN/go-solidity/contracts/" + json_file
+	} else {
+		json_path += json_file
+	}
+	jBytes, err := ioutil.ReadFile(json_path)
+	return jBytes, err
+}
+
+func (self *SolidityContract) capture_compiled_json(rpccc RpcCompiledContract) error {
+	if self.integration_test != 0 {
+		if jsonBytes, err := json.Marshal(rpccc); err != nil {
+			self.logger.Debug("Debug", fmt.Sprintf("Error demarshalling compiled output to json file, %v.", err))
+			return err
+		} else if err := ioutil.WriteFile(self.name+".json",jsonBytes,0644); err != nil {
+			self.logger.Debug("Debug", fmt.Sprintf("Error writing compiled json to a file for %v, %v.", self.name, err))
+		}
+	}
+	return nil
 }
 
 func (self *SolidityContract) get_contract_as_string() (string, error) {
