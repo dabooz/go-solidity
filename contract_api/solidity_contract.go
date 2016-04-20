@@ -611,16 +611,21 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 
 	switch params.(type) {
 	case *MultiValueParams:
-		the_params = append(the_params,params.(*MultiValueParams).A)
-		the_params = append(the_params,params.(*MultiValueParams).B)
+		the_params = append(the_params, params.(*MultiValueParams).A)
+		the_params = append(the_params, params.(*MultiValueParams).B)
 	default:
-		the_params = append(the_params,params)
+		the_params = append(the_params, params)
+		if method == "eth_call" {
+			the_params = append(the_params, "latest")
+		}
 	}
 
 	// the_params[0] = params
 	body["params"] = the_params
 	jsonBytes, err = json.Marshal(body)
-	
+
+	self.logger.Debug("Debug", fmt.Sprintf("RPC JSON:%v", body))
+
 	if err == nil {
 		req, err = http.NewRequest("POST", self.rpcURL, bytes.NewBuffer(jsonBytes))
 		if err == nil {

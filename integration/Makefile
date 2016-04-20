@@ -19,6 +19,7 @@ endtest:
 	docker-compose -f compose/test.yml rm -f
 
 testdev: containers compose/test.yml starttest
+	docker-compose -f compose/test.yml logs
 
 compilecontracts:
 	cd compilecon; make
