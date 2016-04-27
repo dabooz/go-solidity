@@ -1,4 +1,6 @@
-FROM ethereum
+FROM ethereumbuild
+
+RUN apt-get -y install vim
 
 COPY client.sh /root/
 COPY odminer.sh /root/
