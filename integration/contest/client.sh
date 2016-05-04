@@ -64,6 +64,8 @@ do
     sleep 1
 done
 
+export mtn_soliditycontract_block_read_delay=0
+
 echo "Bootstrapping MTN smart contracts."
 mtn-bootstrap $ETHERBASE >/tmp/bootstrap.log 2>&1
 BRC=$?

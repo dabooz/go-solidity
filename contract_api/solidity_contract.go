@@ -33,14 +33,19 @@ type SolidityContract struct {
 	logBlockchainStats    string
 }
 
+
+// === global state used to detect when we havent seen a block in a while ===
 type blockSync struct {
 	lastBlockTime  int64	// The unix time in seconds when blockNumber was last updated
 	blockNumber    string 	// The last block that was seen
+	blockStable    string   // The last block taht can be read from
 }
 
 var global_block_state_lock sync.Mutex
 var global_block_state blockSync
 var no_recent_blocks int
+var block_read_delay int
+var block_update_delay int
 
 func update_block(blockNumber string) {
 	global_block_state_lock.Lock()
@@ -49,6 +54,9 @@ func update_block(blockNumber string) {
 	if global_block_state.blockNumber == "" || blockNumber != global_block_state.blockNumber {
 		global_block_state.lastBlockTime = time.Now().Unix()
 		global_block_state.blockNumber = blockNumber
+		block,_ := strconv.ParseUint(blockNumber[2:], 16, 32)
+		block = block - uint64(block_read_delay)
+		global_block_state.blockStable = fmt.Sprintf("0x%x", block)
 	}
 }
 
@@ -92,7 +100,31 @@ func SolidityContractFactory(name string) *SolidityContract {
 	}
 
 	sc.logBlockchainStats = os.Getenv("mtn_soliditycontract_logstats")
+
+	if block_read_delay, err = strconv.Atoi(os.Getenv("mtn_soliditycontract_block_read_delay")); err != nil {
+		block_read_delay = 3
+	}
+
+	if block_update_delay, err = strconv.Atoi(os.Getenv("mtn_soliditycontract_block_update_delay")); err != nil {
+		block_update_delay = 10
+	}
+
 	return sc
+}
+
+func (self *SolidityContract) get_stable_block() string {
+	delta := time.Now().Unix()-global_block_state.lastBlockTime
+	if int(delta) >= block_update_delay {
+		if _, err := self.get_current_block(); err != nil {
+			self.logger.Debug("Debug", err)
+		}
+	}
+
+	return global_block_state.blockStable
+}
+
+func (self *SolidityContract) dump_block_info() {
+	self.logger.Debug("Debug", fmt.Sprintf("Current block %v, stable block %v", global_block_state.blockNumber, global_block_state.blockStable))
 }
 
 func (self *SolidityContract) Deploy_contract(from string, block_chain_url string) (bool, error) {
@@ -627,7 +659,7 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 	default:
 		the_params = append(the_params, params)
 		if method == "eth_call" {
-			the_params = append(the_params, "latest")
+			the_params = append(the_params, self.get_stable_block())
 		}
 	}
 
@@ -1253,6 +1285,32 @@ func (self *SolidityContract) zero_pad_left(p string, length int) string {
 	}
 }
 
+func (self *SolidityContract) get_current_block() (string, error) {
+	var rpcResp *rpcResponse = new(rpcResponse)
+	if res,err := self.Call_rpc_api("eth_blockNumber",nil); err != nil {
+        err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned an error: %v.",err)}
+        return "", err
+    } else if err := json.Unmarshal([]byte(res),rpcResp); err != nil {
+        err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned undecodable response %v, error: %v.",res,err)}
+        return "", err
+    } else if rpcResp.Error.Message != "" {
+        err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned an error: %v.",rpcResp.Error.Message)}
+        return "", err
+    } else {
+    	switch rpcResp.Result.(type) {
+        case string:
+            if rpcResp.Result != "0x0" {
+                update_block(rpcResp.Result.(string))
+            }
+            return rpcResp.Result.(string), nil
+        default:
+        	err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned result that is not a string: %v.",rpcResp.Result)}
+        	return "", err
+        }
+    }
+}
+
+
 func (self *SolidityContract) check_eth_status() error {
 	self.logger.Debug("Entry")
 	err := error(nil)
@@ -1302,32 +1360,36 @@ func (self *SolidityContract) check_eth_status() error {
     }
 
     start_timer = time.Now()
+    block := ""
     for !block_done && err == nil {
-        if res,err = self.Call_rpc_api("eth_blockNumber",nil); err != nil {
-            err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned an error: %v.",err)}
-            break
-        }
-        if err = json.Unmarshal([]byte(res),rpcResp); err != nil {
-            err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned undecodable response %v, error: %v.",res,err)}
-            break
-        }
+    	if block, err = self.get_current_block(); err != nil {
+    		break
+        // if res,err = self.Call_rpc_api("eth_blockNumber",nil); err != nil {
+        //     err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned an error: %v.",err)}
+        //     break
+        // }
+        // if err = json.Unmarshal([]byte(res),rpcResp); err != nil {
+        //     err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned undecodable response %v, error: %v.",res,err)}
+        //     break
+        // }
 
-        if rpcResp.Error.Message != "" {
-            err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned an error: %v.",rpcResp.Error.Message)}
-            break
-        } else {
-            switch rpcResp.Result.(type) {
-                case string:
-                    if rpcResp.Result != "0x0" {
+        // if rpcResp.Error.Message != "" {
+        //     err = &RPCError{fmt.Sprintf("RPC invocation of eth_blockNumber returned an error: %v.",rpcResp.Error.Message)}
+        //     break
+        } else if block != "0x0" {
+            // switch brpcResp.Result.(type) {
+            //     case string:
+            //         if brpcResp.Result != "0x0" {
                         block_done = true
-                        update_block(rpcResp.Result.(string))
+                        // update_block(brpcResp.Result.(string))
                         break
-                    }
-                default:
-            }
-            if block_done {
-            	break
-            }
+                //     }
+                // default:
+            // }
+            // if block_done {
+            // 	break
+            // }
+        } else {
             delta := time.Now().Sub(start_timer).Seconds()
 			if int(delta) < self.sync_delay_toleration {
 				time.Sleep(time.Duration(poll_wait)*1000*time.Millisecond)
