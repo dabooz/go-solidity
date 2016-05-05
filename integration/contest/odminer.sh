@@ -20,7 +20,7 @@ do
         while [[ ("$PT1" != "[]") || ("$PT2" != "null") || ("$FAILSAFE" -eq 24) ]]
         do
             #echo "blocking for 1 block"
-            WB=$(geth --exec "admin.sleepBlocks(1);" attach)
+            WB=$(geth --exec "admin.sleepBlocks(3);" attach)
             echo "checking for more transactions"
             FAILSAFE=0
             PT1=$(geth --exec "web3.eth.getBlock('pending').transactions" attach)

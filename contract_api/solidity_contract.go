@@ -69,6 +69,8 @@ func blocks_stopped() bool {
 	return false
 }
 
+var global_sigcache = make(map[string]string)
+
 func SolidityContractFactory(name string) *SolidityContract {
 	sc := new(SolidityContract)
 	sc.name = name
@@ -102,7 +104,7 @@ func SolidityContractFactory(name string) *SolidityContract {
 	sc.logBlockchainStats = os.Getenv("mtn_soliditycontract_logstats")
 
 	if block_read_delay, err = strconv.Atoi(os.Getenv("mtn_soliditycontract_block_read_delay")); err != nil {
-		block_read_delay = 3
+		block_read_delay = 0
 	}
 
 	if block_update_delay, err = strconv.Atoi(os.Getenv("mtn_soliditycontract_block_update_delay")); err != nil {
@@ -112,7 +114,7 @@ func SolidityContractFactory(name string) *SolidityContract {
 	return sc
 }
 
-func (self *SolidityContract) get_stable_block() string {
+func (self *SolidityContract) Get_stable_block() string {
 	delta := time.Now().Unix()-global_block_state.lastBlockTime
 	if int(delta) >= block_update_delay {
 		if _, err := self.get_current_block(); err != nil {
@@ -121,6 +123,10 @@ func (self *SolidityContract) get_stable_block() string {
 	}
 
 	return global_block_state.blockStable
+}
+
+func (self *SolidityContract) Get_sig_cache() map[string]string {
+	return global_sigcache
 }
 
 func (self *SolidityContract) dump_block_info() {
@@ -204,14 +210,23 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 		err = &RPCError{fmt.Sprintf("This object has no compiled contract. Please use Load_contract() before invoking any contract methods.\n")}
 	}
 
+	self.logger.Debug("Debug", fmt.Sprintf("Current stable block: %v", self.Get_stable_block()))
+	self.logger.Debug("Debug", fmt.Sprintf("Current sig cache: %v", self.Get_sig_cache()))
+
 	if err == nil {
-		if hex_sig, err = self.get_method_sig(method_name); err == nil {
-			if out, err = self.Call_rpc_api("web3_sha3", hex_sig); err == nil {
-				if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
-					if rpcResp.Error.Message != "" {
-						err = &RPCError{fmt.Sprintf("RPC hash of method signature for %v failed, error: %v.", method_name, rpcResp.Error.Message)}
-					} else {
-						method_id = rpcResp.Result.(string)[:10]
+		// Get hashed signature from the cache
+		method_id = global_sigcache[self.name + "." + method_name]
+		if method_id == "" {
+			// Create a new signature hash and cache it
+			if hex_sig, err = self.get_method_sig(method_name); err == nil {
+				if out, err = self.Call_rpc_api("web3_sha3", hex_sig); err == nil {
+					if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
+						if rpcResp.Error.Message != "" {
+							err = &RPCError{fmt.Sprintf("RPC hash of method signature for %v failed, error: %v.", method_name, rpcResp.Error.Message)}
+						} else {
+							method_id = rpcResp.Result.(string)[:10]
+							global_sigcache[self.name + "." + method_name] = method_id
+						}
 					}
 				}
 			}
@@ -452,6 +467,24 @@ func (self *SolidityContract) get_contract(tx_address string) (string, error) {
 						found = true
 						update_block(rpcResp.Result.BlockNumber)
 						self.log_stats(rpcResp)
+						// Dont return until the block with the contract in it becomes the current stable block
+						block_timer := time.Now()
+						target_block,_ := strconv.ParseUint(rpcResp.Result.BlockNumber[2:], 16, 32)
+						for err == nil {
+							time.Sleep(5000 * time.Millisecond)
+							delta := time.Now().Sub(block_timer).Seconds()
+							self.logger.Debug("Debug", fmt.Sprintf("Waiting for contract block %v(%v) to become stable, waiting for %v seconds.", target_block, rpcResp.Result.BlockNumber, delta))
+							if int(delta) < self.tx_delay_toleration*(block_read_delay+1) {
+								if err = self.check_eth_status(); err == nil {
+									stable_block,_ := strconv.ParseUint(self.Get_stable_block()[2:], 16, 32)
+									if target_block <= stable_block {
+										break
+									}
+								}
+							} else {
+								err = &RPCError{fmt.Sprintf("RPC transaction timed out waiting for contract block %v(%v) to be stable, after %v seconds.", target_block, rpcResp.Result.BlockNumber, delta)}
+							}
+						}
 					} else {
 						delta := time.Now().Sub(start_timer).Seconds()
 						if int(delta) < self.tx_delay_toleration {
@@ -659,7 +692,7 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 	default:
 		the_params = append(the_params, params)
 		if method == "eth_call" {
-			the_params = append(the_params, self.get_stable_block())
+			the_params = append(the_params, self.Get_stable_block())
 		}
 	}
 

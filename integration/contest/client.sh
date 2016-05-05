@@ -64,7 +64,8 @@ do
     sleep 1
 done
 
-export mtn_soliditycontract_block_read_delay=0
+# Set this to the number of blocks that must be committed before a state change is visible.
+export mtn_soliditycontract_block_read_delay=3
 
 echo "Bootstrapping MTN smart contracts."
 mtn-bootstrap $ETHERBASE >/tmp/bootstrap.log 2>&1

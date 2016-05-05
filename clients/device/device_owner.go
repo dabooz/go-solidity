@@ -13,6 +13,8 @@ import (
 func main() {
     log.Println("Starting device owner client")
 
+    tx_delay_toleration := 180
+
     if len(os.Args) < 3 {
         log.Printf("...terminating, only %v parameters were passed.\n",len(os.Args))
         os.Exit(1)
@@ -87,11 +89,24 @@ func main() {
     log.Printf("Device is connected to token bank\n")
 
     var echo_bank interface{}
-    if echo_bank,err = sc.Invoke_method("get_bank",nil); err != nil {
-        log.Printf("...terminating, could not invoke get_bank: %v\n",err)
-        os.Exit(1)
+    start_timer := time.Now()
+    for {
+        if echo_bank,err = sc.Invoke_method("get_bank",nil); err != nil {
+            log.Printf("...terminating, could not invoke get_bank: %v\n",err)
+            os.Exit(1)
+        } else if echo_bank.(string) == "0x0000000000000000000000000000000000000000" {
+            if int(time.Now().Sub(start_timer).Seconds()) < tx_delay_toleration {
+                log.Printf("Sleeping, waiting for the block with the Update.\n")
+                time.Sleep(15 * time.Second)
+            } else {
+                log.Printf("Timeout waiting for the Update.\n")
+                os.Exit(1)
+            }
+        } else {
+            break
+        }
     }
-    log.Printf("Device using bank at %v.\n",echo_bank)
+    log.Printf("Device using bank at %v.\n", echo_bank)
 
     // Find the device registry contract
     var draddr interface{}
@@ -141,11 +156,24 @@ func main() {
 
     // Find the device in the registry
     var echo_device interface{}
-    p = make([]interface{},0,10)
-    p = append(p,sc.Get_contract_address())
-    if echo_device,err = dr.Invoke_method("get_description",p); err != nil {
-        log.Printf("...terminating, could not invoke get_description: %v\n",err)
-        os.Exit(1)
+    start_timer = time.Now()
+    for {
+        p = make([]interface{},0,10)
+        p = append(p,sc.Get_contract_address())
+        if echo_device,err = dr.Invoke_method("get_description",p); err != nil {
+            log.Printf("...terminating, could not invoke get_description: %v\n",err)
+            os.Exit(1)
+        } else if len(echo_device.([]string)) == 0 {
+            if int(time.Now().Sub(start_timer).Seconds()) < tx_delay_toleration {
+                log.Printf("Sleeping, waiting for the block with the Update.\n")
+                time.Sleep(15 * time.Second)
+            } else {
+                log.Printf("Timeout waiting for the Update.\n")
+                os.Exit(1)
+            }
+        } else {
+            break
+        }
     }
     log.Printf("Device registered with %v.\n",echo_device)
 
@@ -231,6 +259,19 @@ func main() {
                 log.Printf("...terminating, could not cancel escrow: %v\n",err)
                 os.Exit(1)
             }
+            log.Printf("Contract rejected, waiting to observe state change.\n")
+            for {
+                time.Sleep(5000*time.Millisecond)
+                var agi interface{}
+                if agi, err = sc.Invoke_method("get_agreement_id",nil); err != nil {
+                    log.Printf("...terminating, could not get agreement id: %v\n",err)
+                    os.Exit(1)
+                }
+                if agi != agreement_id {
+                    log.Printf("Cancel has been observed.\n")
+                    break
+                }
+            }
         } else {
 
             p = make([]interface{},0,10)
@@ -252,7 +293,7 @@ func main() {
             start_timer := time.Now()
             for !agreement_reached && !found_cancel {
                 delta := time.Now().Sub(start_timer).Seconds()
-                if int(delta) < 150 {
+                if int(delta) < tx_delay_toleration {
                     time.Sleep(5000*time.Millisecond)
                     var a_reached interface{}
                     p = make([]interface{},0,10)
@@ -267,12 +308,12 @@ func main() {
                     if agreement_reached == true {
                         log.Printf("Governor has accepted.\n")
                     } else {
-                        var container_provider interface{}
-                        if container_provider,err = sc.Invoke_method("get_container_provider",nil); err != nil {
-                            log.Printf("...terminating, could not get container provider: %v\n",err)
+                        var agi interface{}
+                        if agi, err = sc.Invoke_method("get_agreement_id",nil); err != nil {
+                            log.Printf("...terminating, could not get agreement id: %v\n",err)
                             os.Exit(1)
                         }
-                        if container_provider == "0x0000000000000000000000000000000000000000"  {
+                        if agi != agreement_id {
                             log.Printf("Governor has cancelled instead of accepting.\n")
                             found_cancel = true
                         }
@@ -288,12 +329,12 @@ func main() {
                 cancel := false
                 for !cancel {
                     time.Sleep(5000*time.Millisecond)
-                    var container_provider interface{}
-                    if container_provider,err = sc.Invoke_method("get_container_provider",nil); err != nil {
-                        log.Printf("...terminating, could not get container provider: %v\n",err)
+                    var agi interface{}
+                    if agi, err = sc.Invoke_method("get_agreement_id",nil); err != nil {
+                        log.Printf("...terminating, could not get agreement id: %v\n",err)
                         os.Exit(1)
                     }
-                    if container_provider == "0x0000000000000000000000000000000000000000" {
+                    if agi != agreement_id {
                         log.Printf("Governor has cancelled.\n")
                         cancel = true
                     } else {
@@ -304,7 +345,19 @@ func main() {
                                 log.Printf("...terminating, could not reject container: %v\n",err)
                                 os.Exit(1)
                             }
-                            log.Printf("Contract rejected.\n")
+                            log.Printf("Contract rejected, waiting to observe state change.\n")
+                            for {
+                                time.Sleep(5000*time.Millisecond)
+                                var agi interface{}
+                                if agi, err = sc.Invoke_method("get_agreement_id",nil); err != nil {
+                                    log.Printf("...terminating, could not get agreement id: %v\n",err)
+                                    os.Exit(1)
+                                }
+                                if agi != agreement_id {
+                                    log.Printf("Cancel has been observed.\n")
+                                    break
+                                }
+                            }
                             cancel = true
                         }
                     }
@@ -316,7 +369,19 @@ func main() {
                     log.Printf("...terminating, could not reject container: %v\n",err)
                     os.Exit(1)
                 }
-                log.Printf("Contract rejected.\n")
+                log.Printf("Contract rejected, waiting to observe state change.\n")
+                for {
+                    time.Sleep(5000*time.Millisecond)
+                    var agi interface{}
+                    if agi, err = sc.Invoke_method("get_agreement_id",nil); err != nil {
+                        log.Printf("...terminating, could not get agreement id: %v\n",err)
+                        os.Exit(1)
+                    }
+                    if agi != agreement_id {
+                        log.Printf("Cancel has been observed.\n")
+                        break
+                    }
+                }
             }
         }
         // Check bacon balance
@@ -327,7 +392,19 @@ func main() {
         }
         log.Printf("Owner bacon balance is:%v\n",bal)
 
+        // Check global contract_api state from all SC objects
+        log.Printf("Container_executor sees stable block:%v\n", sc.Get_stable_block())
+        log.Printf("Directory sees stable block:%v\n", dirc.Get_stable_block())
+        log.Printf("Device_registry sees stable block:%v\n", dr.Get_stable_block())
+        log.Printf("Token_bank sees stable block:%v\n", bank.Get_stable_block())
+
     }
+
+    // Check global contract_api state from all SC objects
+    log.Printf("Container_executor sees sig cache:%v\n", sc.Get_sig_cache())
+    log.Printf("Directory sees sig cache:%v\n", dirc.Get_sig_cache())
+    log.Printf("Device_registry sees sig cache:%v\n", dr.Get_sig_cache())
+    log.Printf("Token_bank sees sig cache:%v\n", bank.Get_sig_cache())
 
     log.Printf("Deregistering the device\n")
     p = make([]interface{},0,10)

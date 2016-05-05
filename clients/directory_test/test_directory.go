@@ -7,10 +7,13 @@ import (
     "repo.hovitos.engineering/MTN/go-solidity/contract_api"
     "os"
     "strings"
+    "time"
     )
 
 func main() {
     fmt.Println("Starting directory client")
+
+    tx_delay_toleration := 180
 
     if len(os.Args) < 4 {
         fmt.Printf("...terminating, only %v parameters were passed.\n",len(os.Args))
@@ -67,17 +70,28 @@ func main() {
         os.Exit(1)
     }
 
-    fmt.Printf("Retrieve 'a', should have address 10.\n")
-    p = make([]interface{},0,10)
-    p = append(p,"a")
-    if aa,err := dirc.Invoke_method("get_entry",p); err == nil {
-        fmt.Printf("Retrieved 'a', is %v.\n",aa)
-        if aa.(string) != "0x0000000000000000000000000000000000000010" {
+    start_timer := time.Now()
+    for {
+        fmt.Printf("Retrieve 'a', should have address 10.\n")
+        p = make([]interface{},0,10)
+        p = append(p,"a")
+        if aa,err := dirc.Invoke_method("get_entry",p); err == nil {
+            fmt.Printf("Retrieved 'a', is %v.\n",aa)
+            if aa.(string) != "0x0000000000000000000000000000000000000010" {
+                if int(time.Now().Sub(start_timer).Seconds()) < tx_delay_toleration {
+                    fmt.Printf("Sleeping, waiting for the block with the Update.\n")
+                    time.Sleep(15 * time.Second)
+                } else {
+                    fmt.Printf("Timeout waiting for the Update.\n")
+                    os.Exit(1)
+                }
+            } else {
+                break
+            }
+        } else {
+            fmt.Printf("Error invoking add_entry: %v\n",err)
             os.Exit(1)
         }
-    } else {
-        fmt.Printf("Error invoking add_entry: %v\n",err)
-        os.Exit(1)
     }
 
     // fmt.Printf("Retrieve owner of 'a', should be %v.\n",registry_owner)
@@ -152,18 +166,29 @@ func main() {
     //     os.Exit(1)
     // }
 
-    fmt.Printf("Retrieve verison 1 of 'c',should be 0x00..0013.\n")
-    p = make([]interface{},0,10)
-    p = append(p,"c")
-    p = append(p,1)
-    if nl,err := dirc.Invoke_method("get_entry_by_version",p); err == nil {
-        fmt.Printf("Registered c version 1 as %v\n",nl)
-        if nl.(string) != "0x0000000000000000000000000000000000000013" {
+    start_timer = time.Now()
+    for {
+        fmt.Printf("Retrieve verison 1 of 'c',should be 0x00..0013.\n")
+        p = make([]interface{},0,10)
+        p = append(p,"c")
+        p = append(p,1)
+        if nl,err := dirc.Invoke_method("get_entry_by_version",p); err == nil {
+            fmt.Printf("Registered c version 1 as %v\n",nl)
+            if nl.(string) != "0x0000000000000000000000000000000000000013" {
+                if int(time.Now().Sub(start_timer).Seconds()) < tx_delay_toleration {
+                    fmt.Printf("Sleeping, waiting for the block with the Update.\n")
+                    time.Sleep(15 * time.Second)
+                } else {
+                    fmt.Printf("Timeout waiting for the Update.\n")
+                    os.Exit(1)
+                }
+            } else {
+                break
+            }
+        } else {
+            fmt.Printf("Error invoking get_entry_by_version: %v\n",err)
             os.Exit(1)
         }
-    } else {
-        fmt.Printf("Error invoking get_entry_by_version: %v\n",err)
-        os.Exit(1)
     }
 
     fmt.Printf("Delete 'b'.\n")
@@ -264,17 +289,28 @@ func main() {
         os.Exit(1)
     }
 
-    fmt.Printf("Get your current entry, should be 0x04bd30d6872ae1396d537195d76482d8828682673221d41c8420bd07d043b72851d4a7cb9a7d0bcb8360393e27396bc643a75ca7aaa65380becf68e4727257de57.\n")
-    p = make([]interface{},0,10)
-    p = append(p,registry_owner)
-    if wa,err := wd.Invoke_method("get_entry",p); err == nil {
-        fmt.Printf("Received %v.\n",wa)
-        if wa.(string) != "0x04bd30d6872ae1396d537195d76482d8828682673221d41c8420bd07d043b72851d4a7cb9a7d0bcb8360393e27396bc643a75ca7aaa65380becf68e4727257de57" {
+    start_timer = time.Now()
+    for {
+        fmt.Printf("Get your current entry, should be 0x04bd30d6872ae1396d537195d76482d8828682673221d41c8420bd07d043b72851d4a7cb9a7d0bcb8360393e27396bc643a75ca7aaa65380becf68e4727257de57.\n")
+        p = make([]interface{},0,10)
+        p = append(p,registry_owner)
+        if wa,err := wd.Invoke_method("get_entry",p); err == nil {
+            fmt.Printf("Received %v.\n",wa)
+            if wa.(string) != "0x04bd30d6872ae1396d537195d76482d8828682673221d41c8420bd07d043b72851d4a7cb9a7d0bcb8360393e27396bc643a75ca7aaa65380becf68e4727257de57" {
+                if int(time.Now().Sub(start_timer).Seconds()) < tx_delay_toleration {
+                    fmt.Printf("Sleeping, waiting for the block with the Update.\n")
+                    time.Sleep(15 * time.Second)
+                } else {
+                    fmt.Printf("Timeout waiting for the Update.\n")
+                    os.Exit(1)
+                }
+            } else {
+                break
+            }
+        } else {
+            fmt.Printf("Error invoking whisper get_entry: %v\n",err)
             os.Exit(1)
         }
-    } else {
-        fmt.Printf("Error invoking whisper get_entry: %v\n",err)
-        os.Exit(1)
     }
 
     fmt.Printf("Get entry at address 0x00..001, it's not there.\n")
@@ -300,17 +336,28 @@ func main() {
         os.Exit(1)
     }
 
-    fmt.Printf("Get your current entry, should be 0x0000deadbeef.\n")
-    p = make([]interface{},0,10)
-    p = append(p,registry_owner)
-    if wa,err := wd.Invoke_method("get_entry",p); err == nil {
-        fmt.Printf("Received %v.\n",wa)
-        if wa.(string) != "0x0000deadbeef" {
+    start_timer = time.Now()
+    for {
+        fmt.Printf("Get your current entry, should be 0x0000deadbeef.\n")
+        p = make([]interface{},0,10)
+        p = append(p,registry_owner)
+        if wa,err := wd.Invoke_method("get_entry",p); err == nil {
+            fmt.Printf("Received %v.\n",wa)
+            if wa.(string) != "0x0000deadbeef" {
+                if int(time.Now().Sub(start_timer).Seconds()) < tx_delay_toleration {
+                    fmt.Printf("Sleeping, waiting for the block with the Update.\n")
+                    time.Sleep(15 * time.Second)
+                } else {
+                    fmt.Printf("Timeout waiting for the Update.\n")
+                    os.Exit(1)
+                }
+            } else {
+                break
+            }
+        } else {
+            fmt.Printf("Error invoking whisper get_entry: %v\n",err)
             os.Exit(1)
         }
-    } else {
-        fmt.Printf("Error invoking whisper get_entry: %v\n",err)
-        os.Exit(1)
     }
 
     fmt.Printf("Add an entry for a long string.\n")
@@ -323,17 +370,28 @@ func main() {
         os.Exit(1)
     }
 
-    fmt.Printf("Get your current entry, should be 0x04bd30d6872ae1396d537195d76482d8828682673221d41c8420bd07d043b72851d4a7cb9a7d0bcb8360393e27396bc643a75ca7aaa65380becf68e4727257de57.\n")
-    p = make([]interface{},0,10)
-    p = append(p,registry_owner)
-    if wa,err := wd.Invoke_method("get_entry",p); err == nil {
-        fmt.Printf("Received %v.\n",wa)
-        if wa.(string) != "0x04bd30d6872ae1396d537195d76482d8828682673221d41c8420bd07d043b72851d4a7cb9a7d0bcb8360393e27396bc643a75ca7aaa65380becf68e4727257de57" {
+    start_timer = time.Now()
+    for {
+        fmt.Printf("Get your current entry, should be 0x04bd30d6872ae1396d537195d76482d8828682673221d41c8420bd07d043b72851d4a7cb9a7d0bcb8360393e27396bc643a75ca7aaa65380becf68e4727257de57.\n")
+        p = make([]interface{},0,10)
+        p = append(p,registry_owner)
+        if wa,err := wd.Invoke_method("get_entry",p); err == nil {
+            fmt.Printf("Received %v.\n",wa)
+            if wa.(string) != "0x04bd30d6872ae1396d537195d76482d8828682673221d41c8420bd07d043b72851d4a7cb9a7d0bcb8360393e27396bc643a75ca7aaa65380becf68e4727257de57" {
+                if int(time.Now().Sub(start_timer).Seconds()) < tx_delay_toleration {
+                    fmt.Printf("Sleeping, waiting for the block with the Update.\n")
+                    time.Sleep(15 * time.Second)
+                } else {
+                    fmt.Printf("Timeout waiting for the Update.\n")
+                    os.Exit(1)
+                }
+            } else {
+                break
+            }
+        } else {
+            fmt.Printf("Error invoking whisper get_entry: %v\n",err)
             os.Exit(1)
         }
-    } else {
-        fmt.Printf("Error invoking whisper get_entry: %v\n",err)
-        os.Exit(1)
     }
 
     fmt.Printf("Update your entry with 0x000012345678.\n")
@@ -346,17 +404,28 @@ func main() {
         os.Exit(1)
     }
 
-    fmt.Printf("Get your current entry, should be 0x000012345678.\n")
-    p = make([]interface{},0,10)
-    p = append(p,registry_owner)
-    if wa,err := wd.Invoke_method("get_entry",p); err == nil {
-        fmt.Printf("Received %v.\n",wa)
-        if wa.(string) != "0x000012345678" {
+    start_timer = time.Now()
+    for {
+        fmt.Printf("Get your current entry, should be 0x000012345678.\n")
+        p = make([]interface{},0,10)
+        p = append(p,registry_owner)
+        if wa,err := wd.Invoke_method("get_entry",p); err == nil {
+            fmt.Printf("Received %v.\n",wa)
+            if wa.(string) != "0x000012345678" {
+                if int(time.Now().Sub(start_timer).Seconds()) < tx_delay_toleration {
+                    fmt.Printf("Sleeping, waiting for the block with the Update.\n")
+                    time.Sleep(15 * time.Second)
+                } else {
+                    fmt.Printf("Timeout waiting for the Update.\n")
+                    os.Exit(1)
+                }
+            } else {
+                break
+            }
+        } else {
+            fmt.Printf("Error invoking whisper get_entry: %v\n",err)
             os.Exit(1)
         }
-    } else {
-        fmt.Printf("Error invoking whisper get_entry: %v\n",err)
-        os.Exit(1)
     }
 
     fmt.Printf("Delete your entry.\n")
@@ -367,17 +436,28 @@ func main() {
         os.Exit(1)
     }
 
-    fmt.Printf("Get your current entry, should be empty string.\n")
-    p = make([]interface{},0,10)
-    p = append(p,registry_owner)
-    if wa,err := wd.Invoke_method("get_entry",p); err == nil {
-        fmt.Printf("Received %v.\n",wa)
-        if wa.(string) != "" {
+    start_timer = time.Now()
+    for {
+        fmt.Printf("Get your current entry, should be empty string.\n")
+        p = make([]interface{},0,10)
+        p = append(p,registry_owner)
+        if wa,err := wd.Invoke_method("get_entry",p); err == nil {
+            fmt.Printf("Received %v.\n",wa)
+            if wa.(string) != "" {
+                if int(time.Now().Sub(start_timer).Seconds()) < tx_delay_toleration {
+                    fmt.Printf("Sleeping, waiting for the block with the Update.\n")
+                    time.Sleep(15 * time.Second)
+                } else {
+                    fmt.Printf("Timeout waiting for the Update.\n")
+                    os.Exit(1)
+                }
+            } else {
+                break
+            }
+        } else {
+            fmt.Printf("Error invoking whisper get_entry: %v\n",err)
             os.Exit(1)
         }
-    } else {
-        fmt.Printf("Error invoking whisper get_entry: %v\n",err)
-        os.Exit(1)
     }
 
     // Find all events related to the directory test in the blockchain and dump them into the output.
