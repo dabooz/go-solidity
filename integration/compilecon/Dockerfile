@@ -1,4 +1,4 @@
-FROM ethereum
+FROM ethereumbuild
 
 COPY client.sh /root/
 COPY odminer.sh /root/
