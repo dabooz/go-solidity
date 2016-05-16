@@ -42,7 +42,8 @@ NETWORKID=$((RANDOM * RANDOM))
 ETHERBASE=$(cat accounts)
 
 echo "Starting Ethereum."
-geth --fast --shh --verbosity 6 --nodiscover --networkid $NETWORKID --minerthreads 1 --mine --rpc --rpcapi "admin,db,eth,debug,miner,net,shh,txpool,personal,web3" --genesis /root/genesis.json >/tmp/geth.log 2>&1 &
+geth init /root/genesis.json
+geth --lightkdf --fast --shh --verbosity 6 --nodiscover --networkid $NETWORKID --minerthreads 1 --mine --rpc --rpcapi "admin,db,eth,debug,miner,net,shh,txpool,personal,web3" >/tmp/geth.log 2>&1 &
 
 echo "Waiting for miner to mine a block."
 BALANCE=0
@@ -59,7 +60,7 @@ MS=$(geth --exec "miner.stop()" attach)
 ./odminer.sh >/tmp/odminer.log 2>&1 &
 
 echo "Unlocking account for bootstrap."
-while ! geth --exec personal.unlockAccount\(\"$ETHERBASE\",\"$PASSWD\"\) attach
+while ! geth --exec personal.unlockAccount\(\"$ETHERBASE\",\"$PASSWD\",0\) attach
 do
     sleep 1
 done
@@ -91,7 +92,7 @@ if [ "$DRC" -ne 0 ]; then
 fi
 
 echo "starting monitor"
-smartcontract-monitor -v=5 -alsologtostderr=true -dirAddr=$DIRADDR -version=0 >/tmp/monitor.log 2>&1 &
+smartcontract-monitor -v=5 -alsologtostderr=true -dirAddr=$DIRADDR >/tmp/monitor.log 2>&1 &
 
 echo "Starting Exchange REST Server."
 mtn-gorest $DIRADDR $ETHERBASE >/tmp/restapi.log 2>&1 &
