@@ -401,10 +401,10 @@ func main() {
     }
 
     // Check global contract_api state from all SC objects
-    log.Printf("Container_executor sees sig cache:%v\n", sc.Get_sig_cache())
-    log.Printf("Directory sees sig cache:%v\n", dirc.Get_sig_cache())
-    log.Printf("Device_registry sees sig cache:%v\n", dr.Get_sig_cache())
-    log.Printf("Token_bank sees sig cache:%v\n", bank.Get_sig_cache())
+    log.Printf("Container_executor sees sig cache:%v\n", sc.Get_sig_cache_as_string())
+    log.Printf("Directory sees sig cache:%v\n", dirc.Get_sig_cache_as_string())
+    log.Printf("Device_registry sees sig cache:%v\n", dr.Get_sig_cache_as_string())
+    log.Printf("Token_bank sees sig cache:%v\n", bank.Get_sig_cache_as_string())
 
     log.Printf("Deregistering the device\n")
     p = make([]interface{},0,10)

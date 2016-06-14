@@ -2,8 +2,13 @@ package contract_api
 
 import (
     "encoding/json"
+    "fmt"
+    "math"
     "reflect"
+    "runtime"
+    "strconv"
     "strings"
+    "time"
     "testing"
     )
 
@@ -555,18 +560,98 @@ func TestDecodeOutputString(t *testing.T) {
 func TestInvocationString(t *testing.T) {
 
     sc := SolidityContractFactory("some_contract")
-    err := json.Unmarshal([]byte(testCCJSONString),&sc.compiledContract)
-    if err == nil {
-        //fmt.Printf("Unmarshalled string: %v\n",sc.compiledContract)
-        //fmt.Printf("First function: %v\n",sc.compiledContract.Info.Abidefinition[0].Name)
-
-
-    } else {
+    if err := json.Unmarshal([]byte(testCCJSONString),&sc.compiledContract); err != nil {
         t.Fatalf("Error Unmarshalling test JSON, error: %v\n",err)
     }
 
 
 }
 
+func TestGlobalMethodHashCache(t *testing.T) {
+    sc := SolidityContractFactory("some_contract")
+    if err := json.Unmarshal([]byte(testCCJSONString),&sc.compiledContract); err != nil {
+        t.Fatalf("Error Unmarshalling test JSON, error: %v\n",err)
+    }
 
+    sigCache := sc.Get_sig_cache_as_string()
+    if sigCache != "map[]" {
+        t.Errorf("Sig cache should contain xyz but contains %v", sigCache)
+    }
 
+    hash := get_cached_method_hash("method")
+    if hash != "" {
+        t.Errorf("Expected empty method hash, got %v", hash)
+    }
+
+    theHash := "a1b2c3d4"
+    cache_method_hash("method1", theHash)
+
+    hash = get_cached_method_hash("method1")
+    if hash != theHash {
+        t.Errorf("Expected method hash %v, got %v", theHash, hash)
+    }
+
+    // Make sure each go routine has it's own thread.
+    runtime.GOMAXPROCS(3)
+
+    // The commented out code will expose a concurrency problem with
+    // unsafe usage of the global signature cache. That's why it's commented out.
+    // It is left here so that anyone can run it to prove there is a problem with unsafe usage.
+    // go ReadFromHashUnsafe(10000000000)
+    // go WriteToHashUnsafe(100000000)
+    // go ReadFromHashUnsafe(10000000000)
+
+    // fmt.Println("Waiting for unsafe sig cache tests to complete")
+    // time.Sleep(60000 * time.Millisecond)
+
+    go ReadFromHash(100000000)
+    go WriteToHash(100000000)
+    go ReadFromHash(100000000)
+
+    fmt.Println("Waiting for safe signature_hash_cache tests to complete")
+    time.Sleep(50000 * time.Millisecond)
+
+}
+
+func WriteToHash(count int) {
+    num := 0
+    for num <= count {
+        method := "method" + strconv.Itoa(num)
+        hash := "hash"+ strconv.Itoa(num)
+        cache_method_hash(method, hash)
+        num += 1
+    }
+    fmt.Println("Writing cache done")
+}
+
+func WriteToHashUnsafe(count int) {
+    num := 0
+    for num <= count {
+        method := "method" + strconv.Itoa(num)
+        hash := "hash"+ strconv.Itoa(num)
+        global_sigcache[method] = hash
+        num += 1
+        if math.Mod(float64(num), float64(1000000)) == 0 {
+            fmt.Printf("Writing entry %v\n", num/1000000)
+        }
+    }
+    fmt.Println("Writing cache unsafe done")
+}
+
+func ReadFromHash(count int) {
+    num := 0
+    for num <= count {
+        _ = get_cached_method_hash("method75")
+        num += 1
+    }
+    fmt.Println("Reading cache done")
+}
+
+func ReadFromHashUnsafe(count int) {
+    num := 0
+    for num <= count {
+        _ = global_sigcache["method75"]
+        num += 1
+    }
+    fmt.Println("Reading cache unsafe done")
+}

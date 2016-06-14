@@ -70,7 +70,20 @@ func blocks_stopped() bool {
 }
 
 var global_sigcache = make(map[string]string)
+var global_sigcache_lock sync.Mutex
 
+func get_cached_method_hash(method string) string {
+	global_sigcache_lock.Lock()
+	defer global_sigcache_lock.Unlock()
+	res := global_sigcache[method]
+	return res
+}
+
+func cache_method_hash(method string, hash string) {
+	global_sigcache_lock.Lock()
+	defer global_sigcache_lock.Unlock()
+	global_sigcache[method] = hash
+}
 func SolidityContractFactory(name string) *SolidityContract {
 	sc := new(SolidityContract)
 	sc.name = name
@@ -125,8 +138,12 @@ func (self *SolidityContract) Get_stable_block() string {
 	return global_block_state.blockStable
 }
 
-func (self *SolidityContract) Get_sig_cache() map[string]string {
-	return global_sigcache
+
+func (self *SolidityContract) Get_sig_cache_as_string() string {
+	global_sigcache_lock.Lock()
+	defer global_sigcache_lock.Unlock()
+	res := fmt.Sprintf("%v", global_sigcache)
+	return res
 }
 
 func (self *SolidityContract) dump_block_info() {
@@ -211,11 +228,11 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 	}
 
 	self.logger.Debug("Debug", fmt.Sprintf("Current stable block: %v", self.Get_stable_block()))
-	self.logger.Debug("Debug", fmt.Sprintf("Current sig cache: %v", self.Get_sig_cache()))
+	self.logger.Debug("Debug", fmt.Sprintf("Current sig cache: %v", self.Get_sig_cache_as_string()))
 
 	if err == nil {
 		// Get hashed signature from the cache
-		method_id = global_sigcache[self.name + "." + method_name]
+		method_id = get_cached_method_hash(self.name + "." + method_name)
 		if method_id == "" {
 			// Create a new signature hash and cache it
 			if hex_sig, err = self.get_method_sig(method_name); err == nil {
@@ -225,7 +242,7 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 							err = &RPCError{fmt.Sprintf("RPC hash of method signature for %v failed, error: %v.", method_name, rpcResp.Error.Message)}
 						} else {
 							method_id = rpcResp.Result.(string)[:10]
-							global_sigcache[self.name + "." + method_name] = method_id
+							cache_method_hash(self.name + "." + method_name, method_id)
 						}
 					}
 				}

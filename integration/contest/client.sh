@@ -55,18 +55,15 @@ done
 echo $BALANCE
 
 # Mining is running. The on-demand miner will shut it down and then look for pending transactions.
-echo "Starting on-demand miner."
-MS=$(geth --exec "miner.stop()" attach)
-./odminer.sh >/tmp/odminer.log 2>&1 &
+#echo "Starting on-demand miner."
+#MS=$(geth --exec "miner.stop()" attach)
+#./odminer.sh >/tmp/odminer.log 2>&1 &
 
 echo "Unlocking account for bootstrap."
 while ! geth --exec personal.unlockAccount\(\"$ETHERBASE\",\"$PASSWD\",0\) attach
 do
     sleep 1
 done
-
-# Set this to the number of blocks that must be committed before a state change is visible.
-export mtn_soliditycontract_block_read_delay=3
 
 echo "Bootstrapping MTN smart contracts."
 mtn-bootstrap $ETHERBASE >/tmp/bootstrap.log 2>&1

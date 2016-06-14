@@ -29,6 +29,7 @@ ENV mtn_soliditycontract=1
 ENV mtn_soliditycontract_syncdelay=180
 ENV mtn_soliditycontract_txdelay=180
 ENV mtn_soliditycontract_integration=1
+ENV mtn_soliditycontract_block_read_delay=3
 
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity/clients
 RUN make
