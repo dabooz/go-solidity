@@ -30,6 +30,7 @@ ENV mtn_soliditycontract_syncdelay=180
 ENV mtn_soliditycontract_txdelay=180
 ENV mtn_soliditycontract_integration=1
 ENV mtn_soliditycontract_block_read_delay=3
+ENV mtn_soliditycontract_logstats=1
 
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity/clients
 RUN make
@@ -38,6 +39,7 @@ RUN cp /tmp/bin/rest_container_provider /usr/bin/mtn-rest_container_provider
 RUN cp /tmp/bin/bootstrap /usr/bin/mtn-bootstrap
 RUN cp /tmp/bin/directory_test /usr/bin/mtn-directory_test
 RUN cp /tmp/bin/deregister /usr/bin/mtn-deregister
+RUN cp /tmp/bin/agreement_protocol /usr/bin/mtn-agreement_protocol_test
 
 WORKDIR /tmp/src
 RUN go get github.com/gorilla/mux

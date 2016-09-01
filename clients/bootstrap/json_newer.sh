@@ -20,5 +20,9 @@ if [[ ../../contracts/whisper_directory.sol -nt ../../contracts/whisper_director
     exit 1
 fi
 
+if [[ ../../contracts/agreements.sol -nt ../../contracts/agreements.json ]]; then
+    exit 1
+fi
+
 exit 0
 

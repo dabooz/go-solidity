@@ -780,8 +780,13 @@ func (self *SolidityContract) decodeOutputString(methodName string, output_strin
 				_, value, err = self.decode_bytes32(methodName, output_string)
 			} else if outp.Type == "bytes32[]" {
 				_, value, err = self.decode_bytes32_array(methodName, output_string)
+			} else if outp.Type == "bytes" {
+				_, value, err = self.decode_bytes(methodName, output_string)
 			} else {
 				err = &UnsupportedTypeError{fmt.Sprintf("Unable to decode output from %v because type %v is not supported yet. Call Booz.", methodName, outp.Type)}
+			}
+			if err != nil {
+				break
 			}
 		}
 	} else {
@@ -939,6 +944,35 @@ func (self *SolidityContract) decode_bytes32_array(methodName string, encoded_ou
 	return remaining_output, value, err
 }
 
+func (self *SolidityContract) decode_bytes(methodName string, encoded_output string) (string, []byte, error) {
+	self.logger.Debug("Entry", methodName, encoded_output)
+	out, remaining_output, err := "", "", error(nil)
+	var length uint64
+	var b []byte
+
+	if len(encoded_output) < 64*2 {
+		err = &UnsupportedValueError{fmt.Sprintf("Unable to decode output from %v because the output is shorter than required. Need %v, have %v.", methodName, 64*2, len(encoded_output))}
+	} else {
+		if out, length, err = self.decode_uint256(methodName, encoded_output[64:]); err == nil {
+			if uint64(len(out)) < length {
+				err = &UnsupportedValueError{fmt.Sprintf("Unable to decode string array output from %v because the output is shorter than required. Need %v, have %v.", methodName, length, len(out))}
+			} else {
+				if b, err = hex.DecodeString(out[:length*2]); err == nil {
+					remaining_output = out[length*2:]
+				} else {
+					err = &UnsupportedValueError{fmt.Sprintf("Unable to decode string output from %v because the output %v is not a string. Internal error: %v", methodName, out[:length*2], err)}
+				}
+			}
+		}
+	}
+
+	if err != nil {
+		self.logger.Debug("Error", err.Error())
+	}
+	self.logger.Debug("Exit ", remaining_output, b)
+	return remaining_output, b, err
+}
+
 func (self *SolidityContract) decode_address_array(methodName string, encoded_output string) (string, []string, error) {
 	self.logger.Debug("Entry", methodName, encoded_output)
 	out, val, remaining_output, err := "", "", "", error(nil)
@@ -1079,6 +1113,13 @@ func (self *SolidityContract) encodeInputString(methodName string, params []inte
 						param_string_back += res
 					}
 				}
+			} else if inp.Type == "bytes" {
+				if res, err = self.encode_uint256(methodName, len(function.Inputs)*32+len(param_string_back)/2); err == nil {
+					param_string_front += res
+					if res, err = self.encode_bytes(methodName, params[index]); err == nil {
+						param_string_back += res
+					}
+				}
 			} else if inp.Type == "address" {
 				if res, err = self.encode_address(methodName, params[index]); err == nil {
 					param_string_front += res
@@ -1092,6 +1133,9 @@ func (self *SolidityContract) encodeInputString(methodName string, params []inte
 				}
 			} else {
 				err = &UnsupportedTypeError{fmt.Sprintf("Unable to invoke %v because type %v is not supported yet. Call Booz.", methodName, inp.Type)}
+			}
+			if err != nil {
+				break
 			}
 		}
 		param_string = param_string_front + param_string_back
@@ -1246,8 +1290,18 @@ func (self *SolidityContract) encode_bytes32(methodName string, param interface{
 			b := []byte(str)
 			value = hex.EncodeToString(b)
 			encoding += value + strings.Repeat("0", ((32-len(str))*2))
+		} else if len(str) == 64 {
+			encoding += str
 		} else {
 			err = &UnsupportedValueError{fmt.Sprintf("Unable to invoke %v because parameter %v is larger than a 32 byte string.", methodName, param)}
+		}
+	case []byte:
+		str := param.([]byte)
+		if len(str) <= 32 {
+			value = hex.EncodeToString(str)
+			encoding += value + strings.Repeat("0", ((32-len(str))*2))
+		} else {
+			err = &UnsupportedValueError{fmt.Sprintf("Unable to invoke %v because parameter %v is larger than a 32 byte array.", methodName, param)}
 		}
 	default:
 		err = &UnsupportedTypeError{fmt.Sprintf("Unable to invoke %v because parameter %v is not a string.", methodName, param)}
@@ -1284,6 +1338,36 @@ func (self *SolidityContract) encode_bytes32_array(methodName string, param inte
 			}
 		}
 	}
+	if err != nil {
+		self.logger.Debug("Error", err.Error())
+	}
+	self.logger.Debug("Exit ", encoding)
+	return encoding, err
+}
+
+func (self *SolidityContract) encode_bytes(methodName string, param interface{}) (string, error) {
+	self.logger.Debug("Entry", methodName, param)
+	encoding, res, err, str := "", "", error(nil), ""
+
+	switch param.(type) {
+	case string:
+		str = param.(string)
+		if res, err = self.encode_uint256(methodName, len(str)/2); err == nil {
+			encoding += res
+			encoding += str + strings.Repeat("0", 64-(len(str)-((len(str)/64)*64)) )
+		}
+	case []byte:
+		str := param.([]byte)
+		if res, err = self.encode_uint256(methodName, len(str)); err == nil {
+			encoding += res
+			value := hex.EncodeToString(str)
+			encoding += value + strings.Repeat("0", 64-(len(value)-((len(value)/64)*64)) )
+		}
+
+	default:
+		err = &UnsupportedTypeError{fmt.Sprintf("Unable to invoke %v because parameter %v is not a string or byte array.", methodName, param)}
+	}
+
 	if err != nil {
 		self.logger.Debug("Error", err.Error())
 	}
