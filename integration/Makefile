@@ -33,6 +33,7 @@ refreshJSON:
 	docker cp compose_compilecon_1:/root/directory.json ../contracts/
 	docker cp compose_compilecon_1:/root/token_bank.json ../contracts/
 	docker cp compose_compilecon_1:/root/whisper_directory.json ../contracts/
+	docker cp compose_compilecon_1:/root/agreements.json ../contracts/
 
 cleanslate: endtest clean
 

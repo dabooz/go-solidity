@@ -50,6 +50,15 @@ func main() {
         }
     }
 
+    fmt.Println("Deploying agreements contract.")
+    agsc := contract_api.SolidityContractFactory("agreements")
+    if res,err := agsc.Deploy_contract(owning_acount, ""); err == nil {
+        fmt.Printf("Deployed agreements contract:%v at %v.\n",res,agsc.Get_contract_address())
+    } else {
+        fmt.Printf("Error deploying agreements: %v\n",err)
+        os.Exit(1)
+    }
+
     fmt.Println("Deploying token bank contract.")
     tbsc := contract_api.SolidityContractFactory("token_bank")
     if res,err := tbsc.Deploy_contract(owning_acount, ""); err == nil {
@@ -62,8 +71,16 @@ func main() {
 
             // Connect contracts together
 
-            fmt.Println("Adding token bank to directory.")
+            fmt.Println("Adding agreements to directory.")
             p := make([]interface{},0,10)
+            p = append(p,"agreements")
+            p = append(p,agsc.Get_contract_address())
+            p = append(p,dir_ver)
+            _,_ = dsc.Invoke_method("add_entry",p)
+            fmt.Println("Added agreements to directory.")
+
+            fmt.Println("Adding token bank to directory.")
+            p = make([]interface{},0,10)
             p = append(p,"token_bank")
             p = append(p,tbsc.Get_contract_address())
             p = append(p,dir_ver)

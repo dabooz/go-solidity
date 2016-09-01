@@ -5,3 +5,6 @@ default: jsonFiles
 
 jsonFiles:
 	./json_newer.sh
+
+compile:
+	go install

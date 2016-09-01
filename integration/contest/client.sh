@@ -33,7 +33,7 @@ cat >genesis.json <<EOF
     "coinbase": "0x0000000000000000000000000000000000000000",
     "timestamp": "0x00",
     "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "gasLimit": "0x5dc6c0"
+    "gasLimit": "0xadc6c0"
 }
 EOF
 
@@ -75,10 +75,18 @@ fi
 
 DIRADDR=$(cat directory)
 
-export CMTN_DIRECTORY_VERSION=999
-echo "Bootstrapping MTN smart contracts again."
-mtn-bootstrap $ETHERBASE $DIRADDR >/tmp/bootstrap2.log 2>&1
-export CMTN_DIRECTORY_VERSION=0
+# export CMTN_DIRECTORY_VERSION=999
+# echo "Bootstrapping MTN smart contracts again."
+# mtn-bootstrap $ETHERBASE $DIRADDR >/tmp/bootstrap2.log 2>&1
+# export CMTN_DIRECTORY_VERSION=0
+
+echo "Running agreement protocol tests."
+mtn-agreement_protocol_test $DIRADDR $ETHERBASE >/tmp/agreement_protocol_test.log 2>&1
+DRC=$?
+if [ "$DRC" -ne 0 ]; then
+    echo "Agreement protocol tests failed."
+    echo "$DRC"
+fi
 
 echo "Running directory tests."
 mtn-directory_test $DIRADDR $ETHERBASE 30 >/tmp/directory_test.log 2>&1

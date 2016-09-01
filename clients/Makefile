@@ -4,7 +4,7 @@ default: all
 
 all: clients
 
-clients: build_bootstrap build_device build_cp build_sync build_rest_cp build_dir_test build_deregister
+clients: build_bootstrap build_device build_cp build_sync build_rest_cp build_dir_test build_deregister build_agp
 
 build_bootstrap: bootstrap/bootstrap.go
 	cd bootstrap; make
@@ -26,3 +26,6 @@ build_dir_test: directory_test/test_directory.go
 
 build_deregister: deregister/deregister.go
 	cd deregister; make
+
+build_agp: agreement_protocol/agreement_protocol.go
+	cd agreement_protocol; make

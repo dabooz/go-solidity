@@ -1,5 +1,7 @@
 FROM ethereumbuild
 
+RUN apt-get -y install vim
+
 COPY client.sh /root/
 COPY odminer.sh /root/
 COPY tempssh /root/.ssh/
@@ -20,7 +22,7 @@ RUN make
 RUN cp /tmp/bin/device /usr/bin/mtn-device_owner
 
 WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity/clients/bootstrap
-RUN make
+RUN make compile
 RUN cp /tmp/bin/bootstrap /usr/bin/mtn-bootstrap
 
 RUN rm -fr /tmp/src/repo.hovitos.engineering/MTN/go-solidity/contracts/*.json
