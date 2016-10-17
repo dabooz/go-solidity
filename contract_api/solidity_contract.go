@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
-	"repo.hovitos.engineering/MTN/go-solidity/utility"
+	"github.com/open-horizon/go-solidity/utility"
 	"strconv"
 	"strings"
 	"sync"
@@ -618,7 +618,7 @@ func (self *SolidityContract) get_precompiled_json() ([]byte,error) {
 	json_file := self.name + ".json"
 	json_path := os.Getenv("mtn_contractpath")
 	if  json_path == "" {
-		json_path = os.Getenv("GOPATH") + "/src/repo.hovitos.engineering/MTN/go-solidity/contracts/" + json_file
+		json_path = os.Getenv("GOPATH") + "/src/github.com/open-horizon/go-solidity/contracts/" + json_file
 	} else {
 		json_path += json_file
 	}
@@ -645,7 +645,7 @@ func (self *SolidityContract) get_contract_as_string() (string, error) {
 	con_file = self.name + ".sol"
 	con_path = os.Getenv("mtn_contractpath")
 	if  con_path == "" {
-		con_path = os.Getenv("GOPATH") + "/src/repo.hovitos.engineering/MTN/go-solidity/contracts/" + con_file
+		con_path = os.Getenv("GOPATH") + "/src/github.com/open-horizon/go-solidity/contracts/" + con_file
 	} else {
 		con_path += con_file
 	}

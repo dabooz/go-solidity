@@ -8,7 +8,7 @@ import (
     "math/rand"
     "net/http"
     "os"
-    //"repo.hovitos.engineering/MTN/go-solidity/contract_api"
+    //"github.com/open-horizon/go-solidity/contract_api"
     "strconv"
     "time"
     )
