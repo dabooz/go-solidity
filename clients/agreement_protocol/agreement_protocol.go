@@ -6,7 +6,7 @@ import (
     "encoding/hex"
     "encoding/json"
     "log"
-    "repo.hovitos.engineering/MTN/go-solidity/contract_api"
+    "github.com/open-horizon/go-solidity/contract_api"
     "os"
     "time"
     )

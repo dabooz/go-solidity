@@ -7,8 +7,8 @@ import (
     "github.com/golang/glog"
     "io/ioutil"
     "net/http"
-    "repo.hovitos.engineering/MTN/go-eth-rpc"
-    "repo.hovitos.engineering/MTN/go-solidity/contract_api"
+    "github.com/open-horizon/go-eth-rpc"
+    "github.com/open-horizon/go-solidity/contract_api"
 )
 
 func main() {

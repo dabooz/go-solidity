@@ -2,7 +2,7 @@ package main
 
 import (
     "fmt"
-    "repo.hovitos.engineering/MTN/go-solidity/contract_api"
+    "github.com/open-horizon/go-solidity/contract_api"
     )
 
 func main() {

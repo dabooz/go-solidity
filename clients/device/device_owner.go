@@ -5,7 +5,7 @@ import (
     "log"
     "math/rand"
     "os"
-    "repo.hovitos.engineering/MTN/go-solidity/contract_api"
+    "github.com/open-horizon/go-solidity/contract_api"
     "strings"
     "time"
     )
