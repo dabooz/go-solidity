@@ -65,8 +65,8 @@ do
     sleep 1
 done
 
-echo "Bootstrapping MTN smart contracts."
-mtn-bootstrap $ETHERBASE >/tmp/bootstrap.log 2>&1
+echo "Bootstrapping Horizon V2 smart contracts."
+mtn-bootstrapv2 $ETHERBASE >/tmp/bootstrap.log 2>&1
 BRC=$?
 if [ "$BRC" -ne 0 ]; then
     echo "Bootstrap failed."
@@ -75,13 +75,32 @@ fi
 
 DIRADDR=$(cat directory)
 
-# export CMTN_DIRECTORY_VERSION=999
-# echo "Bootstrapping MTN smart contracts again."
-# mtn-bootstrap $ETHERBASE $DIRADDR >/tmp/bootstrap2.log 2>&1
-# export CMTN_DIRECTORY_VERSION=0
+echo "Delay so the blockchain can catch up"
+sleep 30
 
 echo "Running agreement protocol tests."
 mtn-agreement_protocol_test $DIRADDR $ETHERBASE >/tmp/agreement_protocol_test.log 2>&1
+DRC=$?
+if [ "$DRC" -ne 0 ]; then
+    echo "Agreement protocol tests failed."
+    echo "$DRC"
+fi
+
+export CMTN_DIRECTORY_VERSION=999
+
+echo "Bootstrapping Horizon V2 smart contracts again."
+mtn-bootstrapv2 $ETHERBASE $DIRADDR >/tmp/bootstrap2.log 2>&1
+BRC=$?
+if [ "$BRC" -ne 0 ]; then
+    echo "Bootstrap failed."
+    echo "$BRC"
+fi
+
+echo "Delay so the blockchain can catch up"
+sleep 30
+
+echo "Running agreement protocol tests again."
+mtn-agreement_protocol_test $DIRADDR $ETHERBASE >/tmp/agreement_protocol_test2.log 2>&1
 DRC=$?
 if [ "$DRC" -ne 0 ]; then
     echo "Agreement protocol tests failed."
@@ -95,30 +114,6 @@ if [ "$DRC" -ne 0 ]; then
     echo "Directory tests failed."
     echo "$DRC"
 fi
-
-echo "starting monitor"
-smartcontract-monitor -v=5 -alsologtostderr=true -dirAddr=$DIRADDR >/tmp/monitor.log 2>&1 &
-
-echo "Starting Exchange REST Server."
-mtn-gorest $DIRADDR $ETHERBASE >/tmp/restapi.log 2>&1 &
-
-sleep 5
-
-#export mtn_soliditycontract_no_recent_blocks=5
-echo "Starting Device simulator."
-WHISPERD=$(curl -sL http://localhost:8545 -X POST --data '{"jsonrpc":"2.0","method":"shh_newIdentity","params":[],"id":1}' | jq -r '.result')
-
-echo $WHISPERD
-
-mtn-device_owner $DIRADDR $ETHERBASE $WHISPERD >/tmp/device_owner.log 2>&1 &
-#export mtn_soliditycontract_no_recent_blocks=300
-
-echo "Starting Glensung simulator."
-WHISPERP=$(curl -sL http://localhost:8545 -X POST --data '{"jsonrpc":"2.0","method":"shh_newIdentity","params":[],"id":1}' | jq -r '.result')
-
-echo $WHISPERP
-
-mtn-rest_container_provider $WHISPERP $ETHERBASE 30 >/tmp/glensung.log 2>&1 &
 
 echo "all done"
 while :

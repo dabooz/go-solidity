@@ -429,7 +429,7 @@ func (self *SolidityContract) get_method_sig(method_name string) (string, error)
 		sig = strings.TrimSuffix(sig, ",") + ")"
 		self.logger.Debug("Debug", sig)
 		b := []byte(sig)
-		result = hex.EncodeToString(b)
+		result = "0x" + hex.EncodeToString(b)
 	} else {
 		err = &FunctionNotFoundError{fmt.Sprintf("Unable to invoke %v because it is not found in the contract interface.\n", method_name)}
 	}

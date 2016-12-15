@@ -14,7 +14,7 @@ $(IMAGE)-$(VER).tar: Dockerfile client.sh
 	docker build --no-cache -t $(IMAGE):$(VER) .
 	rm -fr tempssh
 	rm -fr tempfs
-	docker tag -f $(IMAGE):$(VER) $(IMAGE):latest
+	docker tag $(IMAGE):$(VER) $(IMAGE):latest
 	#docker save -o $(IMAGE)-$(VER).tar $(IMAGE):$(VER)
 	touch $(IMAGE)-$(VER).tar
 
