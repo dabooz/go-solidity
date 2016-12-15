@@ -1,4 +1,4 @@
-contest2:
+contest:
   image: contest
   environment:
    - PASSWD=bob

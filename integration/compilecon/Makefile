@@ -1,6 +1,6 @@
 # Makefile for ethereum
 
-VER = v1
+VER = v2
 IMAGE = compilecon
 
 default: $(IMAGE)-$(VER).tar
@@ -8,8 +8,8 @@ default: $(IMAGE)-$(VER).tar
 $(IMAGE)-$(VER).tar: Dockerfile client.sh
 	mkdir -p tempssh
 	cp ../docker/fs/root/.ssh/* ./tempssh/
-	mkdir -p tempfs/src/repo.hovitos.engineering/MTN/go-solidity
-	rsync -avzq --exclude 'integration/' --exclude '.git/' ../../../go-solidity ./tempfs/src/repo.hovitos.engineering/MTN/
+	mkdir -p tempfs/src/github.com/open-horizon/go-solidity
+	rsync -avzq --exclude 'integration/' --exclude '.git/' ../../../go-solidity ./tempfs/src/github.com/open-horizon/
 	cp ~/dag/full-R23-0000000000000000 ./tempfs/ || :
 	docker build --no-cache -t $(IMAGE):$(VER) .
 	rm -fr tempssh
