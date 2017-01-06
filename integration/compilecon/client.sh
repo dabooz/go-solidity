@@ -54,11 +54,6 @@ do
 done
 echo $BALANCE
 
-# Mining is running. The on-demand miner will shut it down and then look for pending transactions.
-echo "Starting on-demand miner."
-MS=$(geth --exec "miner.stop()" attach)
-./odminer.sh >/tmp/odminer.log 2>&1 &
-
 echo "Unlocking account for bootstrap."
 while ! geth --exec personal.unlockAccount\(\"$ETHERBASE\",\"$PASSWD\",0\) attach
 do
@@ -66,23 +61,12 @@ do
 done
 
 echo "Bootstrapping MTN smart contracts."
-mtn-bootstrap $ETHERBASE >/tmp/bootstrap.log 2>&1
+mtn-bootstrapv2 $ETHERBASE >/tmp/bootstrap.log 2>&1
 BRC=$?
 if [ "$BRC" -ne 0 ]; then
     echo "Bootstrap failed."
     echo "$BRC"
 fi
-
-DIRADDR=$(cat directory)
-
-#export mtn_soliditycontract_no_recent_blocks=5
-echo "Starting Device simulator."
-WHISPERD=$(curl -sL http://localhost:8545 -X POST --data '{"jsonrpc":"2.0","method":"shh_newIdentity","params":[],"id":1}' | jq -r '.result')
-
-echo $WHISPERD
-
-mtn-device_owner $DIRADDR $ETHERBASE $WHISPERD >/tmp/device_owner.log 2>&1 &
-#export mtn_soliditycontract_no_recent_blocks=300
 
 echo "All done. Run the refreshJSON make target to capture compiled contract JSON files."
 while :

@@ -8,6 +8,7 @@ import (
     "log"
     "github.com/open-horizon/go-solidity/contract_api"
     "os"
+    "strings"
     "time"
     )
 
@@ -20,8 +21,14 @@ func main() {
     }
 
     dir_contract := os.Args[1]
+    if !strings.HasPrefix(dir_contract, "0x") {
+        dir_contract = "0x" + dir_contract
+    }
     fmt.Printf("using directory %v\n",dir_contract)
     agreements_owner := os.Args[2]
+    if !strings.HasPrefix(agreements_owner, "0x") {
+        agreements_owner = "0x" + agreements_owner
+    }
     fmt.Printf("using account %v\n",agreements_owner)
 
     err := error(nil)
@@ -60,10 +67,11 @@ func main() {
     //
     fmt.Println("Hash and sign a simple string.")
     smarter_contract := "{long string of contract terms}"
+    hash_string := "0x" + hex.EncodeToString([]byte(smarter_contract))
     var rpcResp *rpcResponse = new(rpcResponse)
     sig_hash, sig, out := "", "", ""
 
-    if out, err = ag.Call_rpc_api("web3_sha3", smarter_contract); err == nil {
+    if out, err = ag.Call_rpc_api("web3_sha3", hash_string); err == nil {
         if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
             if rpcResp.Error.Message != "" {
                 log.Printf("RPC hash of terms and conditions failed, error: %v.", rpcResp.Error.Message)
@@ -157,7 +165,7 @@ func main() {
 
     var res interface{}
     empty_bytes := make([]byte, 32)
-    tx_delay_toleration := 60
+    tx_delay_toleration := 120
 
     p = make([]interface{},0,10)
     p = append(p, agreements_owner)
@@ -249,7 +257,7 @@ func main() {
 // state changes are not visible for 2 or 3 blocks from the head, to avoid reading
 // state from forks that end up being thrown away.
 func make_agreement(ag *contract_api.SolidityContract, agID []byte, sig_hash string, sig string, counterparty string, shouldWork bool) {
-    tx_delay_toleration := 60
+    tx_delay_toleration := 120
     err := error(nil)
 
     log.Printf("Make an agreement with ID:%v\n", agID)
@@ -311,7 +319,7 @@ func make_agreement(ag *contract_api.SolidityContract, agID []byte, sig_hash str
 // state from forks that end up being thrown away.
 func terminate_agreement(ag *contract_api.SolidityContract, agID []byte, counterParty string, shouldWork bool) {
     log.Printf("Terminating agreement %v.\n", agID)
-    tx_delay_toleration := 60
+    tx_delay_toleration := 120
     err := error(nil)
 
     p := make([]interface{},0,10)

@@ -17,15 +17,11 @@ ENV mtn_soliditycontract_syncdelay=180
 ENV mtn_soliditycontract_txdelay=180
 ENV mtn_soliditycontract_integration=1
 
-WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity/clients/device
-RUN make
-RUN cp /tmp/bin/device /usr/bin/mtn-device_owner
-
-WORKDIR /tmp/src/repo.hovitos.engineering/MTN/go-solidity/clients/bootstrap
+WORKDIR /tmp/src/github.com/open-horizon/go-solidity/clients/bootstrapv2
 RUN make compile
-RUN cp /tmp/bin/bootstrap /usr/bin/mtn-bootstrap
+RUN cp /tmp/bin/bootstrapv2 /usr/bin/mtn-bootstrapv2
 
-RUN rm -fr /tmp/src/repo.hovitos.engineering/MTN/go-solidity/contracts/*.json
+RUN rm -fr /tmp/src/github.com/open-horizon/go-solidity/contracts/*.json
 
 WORKDIR /tmp
 
