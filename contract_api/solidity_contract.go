@@ -528,7 +528,7 @@ func (self *SolidityContract) log_stats(rpcResp *rpcGetTransactionResponse) {
 	// If logging blockchain stats, dump them to the log
 	if self.logBlockchainStats != "" {
 		block_num := rpcResp.Result.BlockNumber
-		if out, err := self.Call_rpc_api("eth_getBlockByNumber", &MultiValueParams{block_num, false}); err != nil {
+		if out, err := self.Call_rpc_api("eth_getBlockByNumber", MultiValueParams{block_num, false}); err != nil {
 			self.logger.Debug("Error", err.Error())
 			return
 		} else {
@@ -703,9 +703,11 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 	body["method"] = method
 
 	switch params.(type) {
-	case *MultiValueParams:
-		the_params = append(the_params, params.(*MultiValueParams).A)
-		the_params = append(the_params, params.(*MultiValueParams).B)
+	case MultiValueParams:
+		mv := params.(MultiValueParams)
+		for _, v := range mv {
+			the_params = append(the_params, v)
+		}
 	default:
 		the_params = append(the_params, params)
 		if method == "eth_call" {
@@ -1574,7 +1576,7 @@ func (self *SolidityContract) check_eth_status() error {
     }
 
     if err == nil {
-        if res,err = self.Call_rpc_api("eth_getBalance",&MultiValueParams{self.from, "latest"}); err == nil {
+        if res,err = self.Call_rpc_api("eth_getBalance",MultiValueParams{self.from, "latest"}); err == nil {
 	        if err = json.Unmarshal([]byte(res),rpcResp); err == nil {
 	            if rpcResp.Error.Message != "" {
 	                err = &RPCError{fmt.Sprintf("RPC invocation of eth_getBalance returned an error: %v.",rpcResp.Error.Message)}
@@ -1830,8 +1832,5 @@ type RpcCompiledContract struct {
 	Code string `json:"code"`
 }
 
-type MultiValueParams struct {
-	A, B interface{}
-}
-
+type MultiValueParams []interface{}
 

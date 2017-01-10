@@ -83,7 +83,8 @@ func main() {
         }
     }
 
-    if out, err = ag.Call_rpc_api("eth_sign", &contract_api.MultiValueParams{agreements_owner, sig_hash}); err == nil {
+    // if out, err = ag.Call_rpc_api("personal_sign", contract_api.MultiValueParams{sig_hash, agreements_owner, "bob"}); err == nil {
+    if out, err = ag.Call_rpc_api("eth_sign", contract_api.MultiValueParams{agreements_owner, sig_hash}); err == nil {
         if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
             if rpcResp.Error.Message != "" {
                 log.Printf("RPC sign of terms and conditions hash failed, error: %v.", rpcResp.Error.Message)
@@ -92,6 +93,9 @@ func main() {
                 sig = rpcResp.Result.(string)
                 log.Printf("Signature of terms and conditions hash is: %v\n", sig)
             }
+        } else {
+            log.Printf("Unmarshal error: %v.", err)
+            os.Exit(1)
         }
     }
 
