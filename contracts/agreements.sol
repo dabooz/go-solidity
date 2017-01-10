@@ -180,6 +180,7 @@ contract agreements {
             v += 27;
 
         // Verify that the signature came from the counterparty
+        // if ( _counterParty == ecrecover(_contractHash, v, r, s) ) {
         if ( _counterParty == ecrecover(sha3("\x19Ethereum Signed Message:\n32",_contractHash), v, r, s) ) {
             return true;
         } else {
