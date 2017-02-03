@@ -270,7 +270,7 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 		p := make(map[string]string)
 		p["from"] = self.from
 		p["to"] = self.contractAddress
-		p["gas"] = "0x16e360"
+		p["gas"] = "0x7a120"  // "0x7a120" "0x16e360"
 		p["data"] = invocation_string
 
 		if out, err = self.Call_rpc_api(eth_method, p); err == nil {
@@ -528,6 +528,7 @@ func (self *SolidityContract) log_stats(rpcResp *rpcGetTransactionResponse) {
 	// If logging blockchain stats, dump them to the log
 	if self.logBlockchainStats != "" {
 		block_num := rpcResp.Result.BlockNumber
+		fmt.Printf("Tx %v cumulative gas used: %v\n", rpcResp.Result.TransactionHash, rpcResp.Result.CumulativeGasUsed)
 		if out, err := self.Call_rpc_api("eth_getBlockByNumber", MultiValueParams{block_num, false}); err != nil {
 			self.logger.Debug("Error", err.Error())
 			return
@@ -536,7 +537,9 @@ func (self *SolidityContract) log_stats(rpcResp *rpcGetTransactionResponse) {
 			if err := json.Unmarshal([]byte(out), rpcResp); err == nil {
 				if rpcResp.Error.Message == "" {
 					gasUsed, _ := strconv.ParseUint(rpcResp.Result.GasUsed[2:], 16, 64)
-					fmt.Printf("Gas used: %v\n", gasUsed)
+					gasLimit, _ := strconv.ParseUint(rpcResp.Result.GasLimit[2:], 16, 64)
+					fmt.Printf("Block %v gas used: %v\n", block_num, gasUsed)
+					fmt.Printf("Block %v gas limit: %v\n", block_num, gasLimit)
 				}
 			}
 		}
