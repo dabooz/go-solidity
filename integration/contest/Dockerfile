@@ -14,7 +14,7 @@ RUN mkdir /tmp/pkg
 
 ENV mtn_soliditycontract=1
 ENV mtn_soliditycontract_syncdelay=180
-ENV mtn_soliditycontract_txdelay=180
+ENV mtn_soliditycontract_txdelay=60
 ENV mtn_soliditycontract_integration=1
 ENV mtn_soliditycontract_block_read_delay=1
 ENV mtn_soliditycontract_logstats=1

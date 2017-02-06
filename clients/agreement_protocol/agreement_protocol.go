@@ -7,6 +7,8 @@ import (
     "encoding/json"
     "log"
     "github.com/open-horizon/go-solidity/contract_api"
+    "math/big"
+    "math/rand"
     "os"
     "strings"
     "time"
@@ -107,6 +109,29 @@ func main() {
     // ===================================================================================================
     // This is the heart of the testcase. Here we will start trying to make agreements on the blockchain.
     //
+
+    // ===================================================================================================
+    // Loop creating agreements, pushing ethereum to see if it drops any pending transactions.  The loop
+    // count can be pushed up to create more stress.
+
+    maxLoops := 10
+    random := rand.New(rand.NewSource(int64(time.Now().Nanosecond())))
+    agId := generateAgreementId(random)
+    inc := big.NewInt(1)
+    newId := big.NewInt(0)
+
+    for x := 0; x < maxLoops; x++ {
+        log.Printf("Make a simple agreement %v in a loop using %v\n", x, agId)
+        only_make_agreement(ag, agId, sig_hash, sig, agreements_owner)
+
+        newId = newId.SetBytes(agId)
+        newId = newId.Add(newId, inc)
+        agId = newId.Bytes()
+
+    }
+
+    log.Printf("Done looping test.\n")
+
     // Invoke the blockchain to make the first agreement.
     //
     agID := []byte("00000000000000000000000000000000")
@@ -210,7 +235,6 @@ func main() {
 
     log.Printf("Admin Terminated agreement.\n")
 
-
     // ===================================================================================================
     // Find all events related to the agreement tests in the blockchain and dump them into the output.
     // The events should match the sequence of operations that occurred above.
@@ -284,7 +308,11 @@ func make_agreement(ag *contract_api.SolidityContract, agID []byte, sig_hash str
     log.Printf("Binary Hash is: %v\n", byte_hash)
     start_timer := time.Now()
     for {
-        fmt.Printf("There should be a recorded contract hash, but it might be in a block we can't read yet.\n")
+        if shouldWork {
+            fmt.Printf("There should be a recorded contract hash, but it might be in a block we can't read yet.\n")
+        } else {
+            fmt.Printf("There should NOT be a recorded contract hash.\n")
+        }
         if res, err = ag.Invoke_method("get_contract_hash", p); err == nil {
             fmt.Printf("Received contract hash:%v.\n",res)
             if bytes.Compare([]byte(res.(string)), byte_hash) != 0 {
@@ -314,6 +342,23 @@ func make_agreement(ag *contract_api.SolidityContract, agID []byte, sig_hash str
             os.Exit(1)
         }
     }
+}
+
+// This function is used to write an agreement on the blockchain, but it doesnt wait for the write to be visible.
+func only_make_agreement(ag *contract_api.SolidityContract, agID []byte, sig_hash string, sig string, counterparty string) {
+    err := error(nil)
+
+    log.Printf("Make an agreement with ID:%v\n", agID)
+    p := make([]interface{},0,10)
+    p = append(p, agID)
+    p = append(p, sig_hash[2:])
+    p = append(p, sig[2:])
+    p = append(p, counterparty)
+    if _, err = ag.Invoke_method("create_agreement", p); err != nil {
+        log.Printf("...terminating, could not invoke create_agreement: %v\n", err)
+        os.Exit(1)
+    }
+    log.Printf("Create agreement %v successfully submitted.\n", agID)
 }
 
 // This function is used to invoke the terminate_agreement function on the blockchain.
@@ -456,4 +501,13 @@ type rpcGetFilterChangesResponse struct {
         Code    int    `json:"code"`
         Message string `json:"message"`
     } `json:"error"`
+}
+
+func generateAgreementId(random *rand.Rand) []byte {
+
+    b := make([]byte, 32, 32)
+    for i := range b {
+        b[i] = byte(random.Intn(256))
+    }
+    return b
 }

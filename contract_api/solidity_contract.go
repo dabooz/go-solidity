@@ -31,6 +31,7 @@ type SolidityContract struct {
 	integration_test      int
 	logger                *utility.DebugTrace
 	logBlockchainStats    string
+	missingReceiptRetry   int
 }
 
 
@@ -123,6 +124,12 @@ func SolidityContractFactory(name string) *SolidityContract {
 	if block_update_delay, err = strconv.Atoi(os.Getenv("mtn_soliditycontract_block_update_delay")); err != nil {
 		block_update_delay = 10
 	}
+
+	var receipt int
+	if receipt, err = strconv.Atoi(os.Getenv("mtn_soliditycontract_missing_receipt_retry")); err != nil || receipt == 0 {
+		receipt = 1
+	}
+	sc.missingReceiptRetry = receipt
 
 	return sc
 }
@@ -273,51 +280,64 @@ func (self *SolidityContract) Invoke_method(method_name string, params []interfa
 		p["gas"] = "0x7a120"  // "0x7a120" "0x16e360"
 		p["data"] = invocation_string
 
-		if out, err = self.Call_rpc_api(eth_method, p); err == nil {
-			if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
-				if rpcResp.Error.Message != "" {
-					err = &RPCError{fmt.Sprintf("RPC invocation of %v failed, error: %v.", method_name, rpcResp.Error.Message)}
-				} else {
-					if !self.is_constant(method_name) {
-						tx_address := rpcResp.Result.(string)
-						var rpcTResp *rpcGetTransactionResponse = new(rpcGetTransactionResponse)
+		retryCount := self.missingReceiptRetry + 1
+		for retryCount != 0 && err == nil {
 
-						start_timer := time.Now()
-						for !found && err == nil {
-							if out, err = self.Call_rpc_api("eth_getTransactionReceipt", tx_address); err == nil {
-								if err = json.Unmarshal([]byte(out), rpcTResp); err == nil {
-									if rpcTResp.Error.Message != "" {
-										err = &RPCError{fmt.Sprintf("RPC transaction receipt for tx %v, invoking %v returned an error: %v.", tx_address, method_name, rpcResp.Error.Message)}
-									} else {
-										//self.logger.Debug("Debug",rpcTResp.Result)
-										if rpcTResp.Result.BlockNumber != "" {
-											result = 0
-											found = true
-											update_block(rpcTResp.Result.BlockNumber)
-											self.log_stats(rpcTResp)
+			if out, err = self.Call_rpc_api(eth_method, p); err == nil {
+				if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
+					if rpcResp.Error.Message != "" {
+						err = &RPCError{fmt.Sprintf("RPC invocation of %v failed, error: %v.", method_name, rpcResp.Error.Message)}
+					} else {
+						if !self.is_constant(method_name) {
+							tx_address := rpcResp.Result.(string)
+							var rpcTResp *rpcGetTransactionResponse = new(rpcGetTransactionResponse)
+
+							start_timer := time.Now()
+							for !found && err == nil {
+								if out, err = self.Call_rpc_api("eth_getTransactionReceipt", tx_address); err == nil {
+									if err = json.Unmarshal([]byte(out), rpcTResp); err == nil {
+										if rpcTResp.Error.Message != "" {
+											err = &RPCError{fmt.Sprintf("RPC transaction receipt for tx %v, invoking %v returned an error: %v.", tx_address, method_name, rpcResp.Error.Message)}
 										} else {
-											delta := time.Now().Sub(start_timer).Seconds()
-											if int(delta) < self.tx_delay_toleration {
-												self.logger.Debug("Debug", fmt.Sprintf("Waiting for transaction %v to run for %v seconds.", tx_address, delta))
-												time.Sleep(5000 * time.Millisecond)
-												err = self.check_eth_status()
+											//self.logger.Debug("Debug",rpcTResp.Result)
+											if rpcTResp.Result.BlockNumber != "" {
+												result = 0
+												found = true
+												retryCount = 0
+												update_block(rpcTResp.Result.BlockNumber)
+												self.log_stats(rpcTResp)
 											} else {
-												err = &RPCError{fmt.Sprintf("RPC transaction receipt timed out for tx %v, invoking %v after %v seconds.", tx_address, method_name, delta)}
+												delta := time.Now().Sub(start_timer).Seconds()
+												if int(delta) < self.tx_delay_toleration {
+													self.logger.Debug("Debug", fmt.Sprintf("Waiting for transaction %v to run for %v seconds.", tx_address, delta))
+													time.Sleep(5000 * time.Millisecond)
+													err = self.check_eth_status()
+												} else {
+													if retryCount == 1 {
+														err = &RPCError{fmt.Sprintf("RPC transaction receipt timed out for tx %v, invoking %v after %v seconds and %v retries.", tx_address, method_name, delta, self.missingReceiptRetry)}
+													} else {
+														retryCount = retryCount - 1
+														self.logger.Debug("Debug", fmt.Sprintf("Retrying transaction submission to %v for method %v seconds.", tx_address, method_name))
+														break
+													}
+												}
 											}
 										}
 									}
 								}
 							}
-						}
-					} else {
-						if rpcResp.Result != "0x" {
-							result, err = self.decodeOutputString(method_name, rpcResp.Result.(string)[2:])
 						} else {
-							err = &RPCError{fmt.Sprintf("RPC invocation eth_call returned %v, the EVM probably failed executing method %v.", rpcResp.Result, method_name)}
+							retryCount = 0     // No need to perform missing receipt retries for readonly methods.
+							if rpcResp.Result != "0x" {
+								result, err = self.decodeOutputString(method_name, rpcResp.Result.(string)[2:])
+							} else {
+								err = &RPCError{fmt.Sprintf("RPC invocation eth_call returned %v, the EVM probably failed executing method %v.", rpcResp.Result, method_name)}
+							}
 						}
 					}
 				}
 			}
+
 		}
 	}
 

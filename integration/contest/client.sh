@@ -43,7 +43,8 @@ ETHERBASE=$(cat accounts)
 
 echo "Starting Ethereum."
 geth init /root/genesis.json
-geth --lightkdf --fast --shh --verbosity 6 --nodiscover --networkid $NETWORKID --minerthreads 1 --mine --rpc --rpcapi "admin,db,eth,debug,miner,net,shh,txpool,personal,web3" >/tmp/geth.log 2>&1 &
+# --verbosity 6
+geth --lightkdf --fast --shh --nodiscover --networkid $NETWORKID --minerthreads 1 --mine --rpc --rpcapi "admin,db,eth,debug,miner,net,shh,txpool,personal,web3" >/tmp/geth.log 2>&1 &
 
 echo "Waiting for miner to mine a block."
 BALANCE=0
