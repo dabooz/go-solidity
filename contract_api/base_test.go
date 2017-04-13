@@ -12,8 +12,8 @@ import (
     "testing"
     )
 
-const testCCJSONString = `{"info": {"language": "Solidity","languageVersion": "0",`+
-    `"abiDefinition": `+
+const testCCJSONString = `{"code": "0",`+
+    `"abi": `+
         `[{"inputs": [],"type": "function","constant": true, "name": "get_owner", "outputs": [{"type": "address", "name": "r"}]},`+
         `{"inputs": [],"type": "function","constant": true, "name": "has_owner", "outputs": [{"type": "bool", "name": "r"}]},`+
         `{"inputs": [{"type": "uint256", "name": "_id"}, {"type": "string", "name": "_name"}, {"type": "string", "name": "_sha1"}], "type": "function","constant": false, "name": "new_container", "outputs": [{"type": "bool", "name": "r"}]},`+
@@ -26,8 +26,8 @@ const testCCJSONString = `{"info": {"language": "Solidity","languageVersion": "0
         `{"inputs": [{"type": "address", "name": "_bank"}],"type": "function", "constant": false, "name": "set_bank", "outputs": []},`+
         `{"inputs": [{"type": "address", "name": "_bank"},{"type": "uint256[]", "name": "_attrib"}],"type": "function", "constant": false, "name": "set_attributes", "outputs": [{"type": "uint256[]", "name": "_attrib"}]},`+
         `{"inputs": [], "type": "constructor"},`+
-        `{"inputs": [{"indexed": true, "type": "uint256", "name": "_eventcode"}, {"indexed": false, "type": "uint256", "name": "_id"}],"type": "event", "name": "NewContainer", "anonymous": false},{"inputs": [{"indexed": true, "type": "uint256", "name": "_eventcode"}, {"indexed": false, "type": "uint256", "name": "_id"}, {"indexed": true, "type": "address", "name": "_self"}],"type": "event", "name": "ExecutionComplete", "anonymous": false}],`+
-        `"compilerVersion": "0.1.1","developerDoc": {"methods": {}}, "userDoc": {"methods": {}}}}`
+        `{"inputs": [{"indexed": true, "type": "uint256", "name": "_eventcode"}, {"indexed": false, "type": "uint256", "name": "_id"}],"type": "event", "name": "NewContainer", "anonymous": false},{"inputs": [{"indexed": true, "type": "uint256", "name": "_eventcode"}, {"indexed": false, "type": "uint256", "name": "_id"}, {"indexed": true, "type": "address", "name": "_self"}],"type": "event", "name": "ExecutionComplete", "anonymous": false}]`+
+        `}`
 
 
 func TestConstructor(t *testing.T) {

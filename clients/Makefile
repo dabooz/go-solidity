@@ -2,9 +2,9 @@
 
 default: all
 
-all: clients
+all: clients contracts
 
-clients: build_bootstrapv2 build_sync build_dir_test build_agp
+clients: build_bootstrapv2 build_sync build_dir_test build_agp build_m
 
 build_bootstrapv2: bootstrapv2/bootstrapv2.go
 	cd bootstrapv2; make
@@ -17,3 +17,9 @@ build_dir_test: directory_test/test_directory.go
 
 build_agp: agreement_protocol/agreement_protocol.go
 	cd agreement_protocol; make
+
+build_m: metering/metering.go
+	cd metering; make
+
+contracts:
+	cd ../contracts && make

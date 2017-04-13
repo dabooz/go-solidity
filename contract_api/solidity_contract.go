@@ -22,7 +22,7 @@ type SolidityContract struct {
 	name                  string
 	from                  string
 	rpcURL                string
-	compiledContract      *RpcCompiledContract
+	compiledContract      *ABI
 	contractAddress       string
 	filter_id             string
 	noEventlistener       bool
@@ -159,7 +159,7 @@ func (self *SolidityContract) dump_block_info() {
 
 func (self *SolidityContract) Deploy_contract(from string, block_chain_url string) (bool, error) {
 	self.logger.Debug("Entry", from, block_chain_url)
-	result, contract_string, tx_address, err := false, "", "", error(nil)
+	result, tx_address, err := false, "", error(nil)
 
 	if from == "" {
 		err = &DeployError{fmt.Sprintf("Must specify ethereum account address as first parameter, specified %v.", from)}
@@ -169,9 +169,7 @@ func (self *SolidityContract) Deploy_contract(from string, block_chain_url strin
 			self.rpcURL = block_chain_url
 		}
 		if self.compiledContract == nil {
-			if contract_string, err = self.get_contract_as_string(); err == nil {
-				self.compiledContract, err = self.compile_contract(contract_string)
-			}
+			self.compiledContract, err = self.compile_contract()
 		}
 
 		if err == nil {
@@ -195,7 +193,7 @@ func (self *SolidityContract) Deploy_contract(from string, block_chain_url strin
 
 func (self *SolidityContract) Load_contract(from string, block_chain_url string) (bool, error) {
 	self.logger.Debug("Entry", from, block_chain_url)
-	result, contract_string, err := false, "", error(nil)
+	result, err := false, error(nil)
 
 	if from == "" {
 		err = &LoadError{fmt.Sprintf("Must specify ethereum account address as first parameter, specified %v.", from)}
@@ -205,10 +203,8 @@ func (self *SolidityContract) Load_contract(from string, block_chain_url string)
 			self.rpcURL = block_chain_url
 		}
 		if self.compiledContract == nil {
-			if contract_string, err = self.get_contract_as_string(); err == nil {
-				if self.compiledContract, err = self.compile_contract(contract_string); err == nil {
-					result = true
-				}
+			if self.compiledContract, err = self.compile_contract(); err == nil {
+				result = true
 			}
 		} else {
 			result = true
@@ -407,11 +403,11 @@ func (self *SolidityContract) Set_contract_address(addr string) {
 	self.filter_id, _ = self.establish_event_listener()
 }
 
-func (self *SolidityContract) Get_compiled_contract() *RpcCompiledContract {
+func (self *SolidityContract) Get_compiled_contract() *ABI {
 	return self.compiledContract
 }
 
-func (self *SolidityContract) Set_compiled_contract(con *RpcCompiledContract) {
+func (self *SolidityContract) Set_compiled_contract(con *ABI) {
 	self.compiledContract = con
 }
 
@@ -593,40 +589,28 @@ func (self *SolidityContract) establish_event_listener() (string, error) {
 	return result, err
 }
 
-func (self *SolidityContract) compile_contract(contract_string string) (*RpcCompiledContract, error) {
-	self.logger.Debug("Entry", contract_string[:40]+"...")
+func (self *SolidityContract) compile_contract() (*ABI, error) {
+	self.logger.Debug("Entry", "")
 	err := error(nil)
-	var out string
-	var result *RpcCompiledContract
+	var jBytes []byte
+	var result *ABI
+	var intermediate *CompiledContract
 
-	if jBytes, err := self.get_precompiled_json(); err != nil {
+	if jBytes, err = self.get_precompiled_json(); err != nil {
 		self.logger.Debug("Debug", fmt.Sprintf("Error reading precompiled json file for %v, %v.", self.name, err))
 
-		// Falling back to use the solidity compiler on demand
-		var rpcResp *rpcCompilerResponse = new(rpcCompilerResponse)
-
-		if out, err = self.Call_rpc_api("eth_compileSolidity", contract_string); err == nil {
-			if err = json.Unmarshal([]byte(out), rpcResp); err == nil {
-				if rpcResp.Error.Message != "" {
-					err = &RPCError{fmt.Sprintf("RPC compile invocation of %v returned an error: %v.", self.name, rpcResp.Error.Message)}
-				} else {
-					if _, ok := rpcResp.Result[self.name]; !ok {
-						self.logger.Debug("Debug", rpcResp)
-						err = &RPCError{fmt.Sprintf("RPC compile invocation of did not return output for %v.", self.name)}
-					} else {
-						//self.logger.Debug("Debug",rpcResp.Result[self.name])
-						r := rpcResp.Result[self.name]
-						self.capture_compiled_json(rpcResp.Result[self.name])
-						result = &r
-					}
-				}
-			}
-		}
-
 	} else {
-		result = new(RpcCompiledContract)
-		if err = json.Unmarshal(jBytes, result); err != nil {
+		intermediate = new(CompiledContract)
+		if err = json.Unmarshal(jBytes, intermediate); err != nil {
 			err = &RPCError{fmt.Sprintf("RPC decode of precompiled contract %v returned an error: %v.", self.name, err)}
+		} else if meta, ok := intermediate.Contracts[self.name + ".sol:" + self.name]; !ok {
+			err = &RPCError{fmt.Sprintf("RPC decode of precompiled contract %v did not find data for this contract: %v.", self.name, intermediate)}
+		} else {
+			result = new(ABI)
+			result.Code = "0x" + meta.Bin
+			if err = json.Unmarshal([]byte(meta.Abi), &result.ABIDefinition); err != nil {
+				err = &RPCError{fmt.Sprintf("RPC decode of precompiled contract %v returned an error: %v.", self.name, err)}
+			}
 		}
 	}
 
@@ -649,56 +633,9 @@ func (self *SolidityContract) get_precompiled_json() ([]byte,error) {
 	return jBytes, err
 }
 
-func (self *SolidityContract) capture_compiled_json(rpccc RpcCompiledContract) error {
-	if self.integration_test != 0 {
-		if jsonBytes, err := json.Marshal(rpccc); err != nil {
-			self.logger.Debug("Debug", fmt.Sprintf("Error demarshalling compiled output to json file, %v.", err))
-			return err
-		} else if err := ioutil.WriteFile(self.name+".json",jsonBytes,0644); err != nil {
-			self.logger.Debug("Debug", fmt.Sprintf("Error writing compiled json to a file for %v, %v.", self.name, err))
-		}
-	}
-	return nil
-}
-
-func (self *SolidityContract) get_contract_as_string() (string, error) {
-	self.logger.Debug("Entry", "")
-	contract_string, cBytes, con_file, con_path, err := "", []byte{}, "", "", error(nil)
-
-	con_file = self.name + ".sol"
-	con_path = os.Getenv("mtn_contractpath")
-	if  con_path == "" {
-		con_path = os.Getenv("GOPATH") + "/src/github.com/open-horizon/go-solidity/contracts/" + con_file
-	} else {
-		con_path += con_file
-	}
-	cBytes, err = ioutil.ReadFile(con_path)
-	contract_string = string(cBytes)
-
-	lines := strings.Split(contract_string, "\n")
-	contract_string = ""
-
-	for _, l := range lines {
-		if strings.Contains(l, "//") {
-			ix := strings.Index(l, "//")
-			l = l[:ix]
-		}
-		l = strings.TrimSpace(l)
-		if !strings.HasPrefix(l, "//") {
-			contract_string = contract_string + l
-		}
-	}
-
-	if err != nil {
-		self.logger.Debug("Error", err.Error())
-	}
-	self.logger.Debug("Exit ", contract_string[:40]+"...")
-	return contract_string, err
-}
-
 func (self *SolidityContract) getFunctionFromABI(methodName string) *abiDefEntry {
 	//self.logger.Debug("Entry",methodName)
-	abi := self.compiledContract.Info.Abidefinition
+	abi := self.compiledContract.ABIDefinition
 	var returnFunction *abiDefEntry
 	for _, value := range abi {
 		if value.Type == "function" && value.Name == methodName {
@@ -778,41 +715,43 @@ func (self *SolidityContract) Call_rpc_api(method string, params interface{}) (s
 func (self *SolidityContract) decodeOutputString(methodName string, output_string string) (interface{}, error) {
 	self.logger.Debug("Entry", methodName, output_string)
 	err := error(nil)
-	var value interface{}
+	returnValue := make([]interface{}, 0, 5)
 
 	function := self.getFunctionFromABI(methodName)
 	if function != nil {
 		for _, outp := range function.Outputs {
+			var value interface{}
 			if len(output_string) < 64 {
 				err = &UnsupportedValueError{fmt.Sprintf("Unable to decode output from %v because the output is not long enough.", methodName)}
 			} else if outp.Type == "address" {
-				_, value, err = self.decode_address(methodName, output_string)
+				output_string, value, err = self.decode_address(methodName, output_string)
 			} else if outp.Type == "address[]" {
-				_, value, err = self.decode_address_array(methodName, output_string)
+				output_string, value, err = self.decode_address_array(methodName, output_string)
 			} else if outp.Type == "bool" {
-				_, value, err = self.decode_boolean(methodName, output_string)
+				output_string, value, err = self.decode_boolean(methodName, output_string)
 			} else if outp.Type == "uint256" {
-				_, value, err = self.decode_uint256(methodName, output_string)
+				output_string, value, err = self.decode_uint256(methodName, output_string)
 			} else if outp.Type == "uint256[]" {
-				_, value, err = self.decode_uint256_array(methodName, output_string)
+				output_string, value, err = self.decode_uint256_array(methodName, output_string)
 			} else if outp.Type == "int256" {
-				_, value, err = self.decode_int256(methodName, output_string)
+				output_string, value, err = self.decode_int256(methodName, output_string)
 			} else if outp.Type == "int256[]" {
-				_, value, err = self.decode_int256_array(methodName, output_string)
+				output_string, value, err = self.decode_int256_array(methodName, output_string)
 			} else if outp.Type == "string" {
-				_, value, err = self.decode_string(methodName, output_string)
+				output_string, value, err = self.decode_string(methodName, output_string)
 			} else if outp.Type == "bytes32" {
-				_, value, err = self.decode_bytes32(methodName, output_string)
+				output_string, value, err = self.decode_bytes32(methodName, output_string)
 			} else if outp.Type == "bytes32[]" {
-				_, value, err = self.decode_bytes32_array(methodName, output_string)
+				output_string, value, err = self.decode_bytes32_array(methodName, output_string)
 			} else if outp.Type == "bytes" {
-				_, value, err = self.decode_bytes(methodName, output_string)
+				output_string, value, err = self.decode_bytes(methodName, output_string)
 			} else {
 				err = &UnsupportedTypeError{fmt.Sprintf("Unable to decode output from %v because type %v is not supported yet. Call Booz.", methodName, outp.Type)}
 			}
 			if err != nil {
 				break
 			}
+			returnValue = append(returnValue, value)
 		}
 	} else {
 		err = &FunctionNotFoundError{fmt.Sprintf("Unable to decode output from %v because it is not found in the contract interface.\n", methodName)}
@@ -821,8 +760,12 @@ func (self *SolidityContract) decodeOutputString(methodName string, output_strin
 	if err != nil {
 		self.logger.Debug("Error", err.Error())
 	}
-	self.logger.Debug("Exit ", value)
-	return value, err
+	self.logger.Debug("Exit ", returnValue)
+	if len(function.Outputs) > 1 {
+		return returnValue, err
+	} else {
+		return returnValue[0], err
+	}
 }
 
 func (self *SolidityContract) decode_uint256(methodName string, encoded_output string) (string, uint64, error) {
@@ -1180,13 +1123,15 @@ func (self *SolidityContract) encode_uint256(methodName string, param interface{
 	self.logger.Debug("Entry", methodName, param)
 	err := error(nil)
 	strVal := ""
-	num := 0
+	var num uint64
 
 	switch param.(type) {
 	case int:
-		num = param.(int)
+		num = uint64(param.(int))
+	case uint64:
+		num = param.(uint64)
 	case string:
-		if num, err = strconv.Atoi(param.(string)); err != nil {
+		if num, err = strconv.ParseUint(param.(string), 10, 64); err != nil {
 			err = &UnsupportedValueError{fmt.Sprintf("Unable to invoke %v because parameter %v is not a number. Internal error: %v", methodName, param, err)}
 		}
 	case nil:
@@ -1804,16 +1749,6 @@ type rpcFilterChanges struct {
 	Topics           []string `json:"topics"`
 }
 
-type rpcCompilerResponse struct {
-	Id      string                         `json:"id"`
-	Version string                         `json:"jsonrpc"`
-	Result  map[string]RpcCompiledContract `json:"result"`
-	Error   struct {
-		Code    int    `json:"code"`
-		Message string `json:"message"`
-	} `json:"error"`
-}
-
 type abiDefEntry struct {
 	Inputs []struct {
 		Type string `json:"type"`
@@ -1828,6 +1763,11 @@ type abiDefEntry struct {
 	} `json:"outputs"`
 }
 
+type ABI struct {
+	Code          string        `json:"code"`
+	ABIDefinition []abiDefEntry `json:"abi"`
+}
+
 func (self *abiDefEntry) print() string {
 	if self != nil {
 		return self.Name
@@ -1836,23 +1776,15 @@ func (self *abiDefEntry) print() string {
 	}
 }
 
-type RpcCompiledContract struct {
-	Info struct {
-		Language        string        `json:"language"`
-		Languageversion string        `json:"languageVersion"`
-		Abidefinition   []abiDefEntry `json:"abiDefinition"`
-		Compilerversion string        `json:"compilerVersion"`
-		Developerdoc    struct {
-			Methods struct {
-			} `json:"methods"`
-		} `json:"developerDoc"`
-		Userdoc struct {
-			Methods struct {
-			} `json:"methods"`
-		} `json:"userDoc"`
-		Source string `json:"source"`
-	} `json:"info"`
-	Code string `json:"code"`
+type ContractMeta struct {
+	Bin string `json:"bin"`
+	Abi string `json:"abi"`
+
+}
+
+type CompiledContract struct {
+	Version   string                  `json:"version"`
+	Contracts map[string]ContractMeta `json:"contracts"`
 }
 
 type MultiValueParams []interface{}

@@ -22,6 +22,11 @@ func main() {
         os.Exit(1)
     }
 
+    tr := new(TestResults)
+    numSuccess := 0
+    numFraud := 0
+    numDelete := 0
+
     dir_contract := os.Args[1]
     if !strings.HasPrefix(dir_contract, "0x") {
         dir_contract = "0x" + dir_contract
@@ -131,12 +136,14 @@ func main() {
     }
 
     log.Printf("Done looping test.\n")
+    numSuccess += maxLoops
 
     // Invoke the blockchain to make the first agreement.
     //
     agID := []byte("00000000000000000000000000000000")
     fmt.Printf("Make a simple agreement using %v\n", agID)
     make_agreement(ag, agID, sig_hash, sig, agreements_owner, true)
+    numSuccess += 1
 
 
     // ===================================================================================================
@@ -145,9 +152,10 @@ func main() {
     agID = []byte("11111111111111111111111111111111")
     fmt.Printf("Make a second agreement using ID: %v\n", agID)
     make_agreement(ag, agID, sig_hash, sig, agreements_owner, true)
+    numSuccess += 1
 
     terminate_agreement(ag, agID, agreements_owner, true)
-
+    numDelete += 1
 
     // ===================================================================================================
     // Try to make some agreements with incorrect info to prove that the smart contract will reject
@@ -158,6 +166,7 @@ func main() {
     agID = []byte("22222222222222222222222222222222")
     fmt.Printf("Try to make an agreement using an invalid signature, ID:%v\n", agID)
     make_agreement(ag, agID, sig_hash, "012345678901234567890123456789012345678901234567890123456789", agreements_owner, false)
+    numFraud += 1
 
 
     // 2. Use an existing agreement ID with a different hash - should not make an agreement, 
@@ -169,14 +178,14 @@ func main() {
     // 3. Pass no counter party - should not make an agreement
     agID = []byte("22222222222222222222222222222222")
     fmt.Printf("Try to make an agreement without providing a counterParty, ID:%v\n", agID)
-    make_agreement(ag, agID, sig_hash, sig, "0000000000000000000000000000000000000000", false)
+    make_agreement(ag, agID, sig_hash, sig, "0x0000000000000000000000000000000000000000", false)
 
 
     // 4. Pass wrong counter party - should not make an agreement, will generate fraud event
     agID = []byte("22222222222222222222222222222222")
     fmt.Printf("Try to make an agreement using the wrong counterParty, ID:%v\n", agID)
-    make_agreement(ag, agID, sig_hash, sig, "1111111111111111111111111111111111111111", false)
-
+    make_agreement(ag, agID, sig_hash, sig, "0x1111111111111111111111111111111111111111", false)
+    numFraud += 1
 
     // ===================================================================================================
     // Try to terminate something that is not a real agreement.
@@ -185,6 +194,7 @@ func main() {
     agID = []byte("22222222222222222222222222222222")
     fmt.Printf("Try to terminate a non-existing agreement, ID:%v\n", agID)
     terminate_agreement(ag, agID, agreements_owner, false)
+    numFraud += 1
 
 
     // ===================================================================================================
@@ -232,6 +242,7 @@ func main() {
             os.Exit(1)
         }
     }
+    numDelete += 1
 
     log.Printf("Admin Terminated agreement.\n")
 
@@ -272,8 +283,18 @@ func main() {
 
     if len(rpcFilterResp.Result) > 0 {
         for ix, ev := range rpcFilterResp.Result {
-            format_ag_event(ix, ev);
+            format_ag_event(ix, ev, tr);
         }
+    }
+
+
+    // Verify the results
+    if tr.Successful != numSuccess || tr.Fraud != numFraud || tr.Delete != numDelete {
+        log.Printf("Error checking test results: %v.\n", tr)
+        log.Printf("Expected Success: %v, Fraud: %v, Delete: %v", numSuccess, numFraud, numDelete)
+        os.Exit(1)
+    } else {
+        log.Printf("Test results all pass.\n")
     }
 
     fmt.Println("Terminating agreement protocol test client")
@@ -427,7 +448,7 @@ func terminate_agreement(ag *contract_api.SolidityContract, agID []byte, counter
 
 // For an event that is found in the blockchain, format it and write it out to the
 // testcase log.
-func format_ag_event(ix int, ev rpcFilterChanges) {
+func format_ag_event(ix int, ev rpcFilterChanges, tr *TestResults) {
     // These event strings correspond to event codes from the agreements contract
     ag_cr8        := "0x0000000000000000000000000000000000000000000000000000000000000000"
     ag_cr8_detail := "0x0000000000000000000000000000000000000000000000000000000000000001"
@@ -441,6 +462,7 @@ func format_ag_event(ix int, ev rpcFilterChanges) {
         log.Printf("|%03d| Agreement created %v\n",ix,ev.Topics[1]);
         log.Printf("Data: %v\n",ev.Data);
         log.Printf("Block: %v\n\n",ev.BlockNumber);
+        tr.Successful += 1
     } else if ev.Topics[0] == ag_cr8_detail {
         log.Printf("|%03d| Agreement created detail %v\n",ix,ev.Topics[1]);
         log.Printf("Data: %v\n",ev.Data);
@@ -449,26 +471,42 @@ func format_ag_event(ix int, ev rpcFilterChanges) {
         log.Printf("|%03d| Agreement creation fraud %v\n",ix,ev.Topics[1]);
         log.Printf("Data: %v\n",ev.Data);
         log.Printf("Block: %v\n\n",ev.BlockNumber);
+        tr.Fraud += 1
     } else if ev.Topics[0] == ag_con_term {
         log.Printf("|%03d| Consumer Terminated %v\n",ix,ev.Topics[1]);
         log.Printf("Data: %v\n",ev.Data);
         log.Printf("Block: %v\n\n",ev.BlockNumber);
+        tr.Delete += 1
     } else if ev.Topics[0] == ag_pub_term {
         log.Printf("|%03d| Publisher Terminated %v\n",ix,ev.Topics[1]);
         log.Printf("Data: %v\n",ev.Data);
         log.Printf("Block: %v\n\n",ev.BlockNumber);
+        tr.Delete += 1
     } else if ev.Topics[0] == ag_fraud_term {
         log.Printf("|%03d| Fraudulent Termination %v\n",ix,ev.Topics[1]);
         log.Printf("Data: %v\n",ev.Data);
         log.Printf("Block: %v\n\n",ev.BlockNumber);
+        tr.Fraud += 1
     } else if ev.Topics[0] == ag_adm_term {
         log.Printf("|%03d| Admin Termination %v\n",ix,ev.Topics[1]);
         log.Printf("Data: %v\n",ev.Data);
         log.Printf("Block: %v\n\n",ev.BlockNumber);
+        tr.Delete += 1
     } else {
         log.Printf("|%03d| Unknown event code in first topic slot.\n")
         log.Printf("Raw log entry:\n%v\n\n",ev)
     }
+}
+
+// Testcase result tracking
+type TestResults struct {
+    Successful int
+    Fraud      int
+    Delete     int
+}
+
+func (t *TestResults) String() string {
+    return fmt.Sprintf("Success: %v, Fraud: %v, Delete: %v", t.Successful, t.Fraud, t.Delete)
 }
 
 // Mappings of structures used in the ethereum RPC API
