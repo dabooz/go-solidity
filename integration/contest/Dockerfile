@@ -1,7 +1,7 @@
-FROM ethereumbuild
+FROM x86_64/gethbuild
 
 RUN apt-get update
-RUN apt-get -y install vim
+RUN apt-get -y install vim build-essential
 
 COPY client.sh /root/
 COPY tempssh /root/.ssh/
@@ -24,6 +24,7 @@ RUN make
 RUN cp /tmp/bin/bootstrapv2 /usr/bin/mtn-bootstrapv2
 RUN cp /tmp/bin/directory_test /usr/bin/mtn-directory_test
 RUN cp /tmp/bin/agreement_protocol /usr/bin/mtn-agreement_protocol_test
+RUN cp /tmp/bin/metering /usr/bin/mtn-metering_test
 
 WORKDIR /tmp
 

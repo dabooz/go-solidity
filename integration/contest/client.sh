@@ -79,14 +79,6 @@ DIRADDR=$(cat directory)
 echo "Delay so the blockchain can catch up"
 sleep 30
 
-echo "Running agreement protocol tests."
-mtn-agreement_protocol_test $DIRADDR $ETHERBASE >/tmp/agreement_protocol_test.log 2>&1
-DRC=$?
-if [ "$DRC" -ne 0 ]; then
-    echo "Agreement protocol tests failed."
-    echo "$DRC"
-fi
-
 export CMTN_DIRECTORY_VERSION=999
 
 echo "Bootstrapping Horizon V2 smart contracts again."
@@ -100,12 +92,22 @@ fi
 echo "Delay so the blockchain can catch up"
 sleep 30
 
-echo "Running agreement protocol tests again."
-mtn-agreement_protocol_test $DIRADDR $ETHERBASE >/tmp/agreement_protocol_test2.log 2>&1
+unset CMTN_DIRECTORY_VERSION
+
+echo "Running agreement protocol tests."
+mtn-agreement_protocol_test $DIRADDR $ETHERBASE >/tmp/agreement_protocol_test.log 2>&1
 DRC=$?
 if [ "$DRC" -ne 0 ]; then
     echo "Agreement protocol tests failed."
     echo "$DRC"
+fi
+
+echo "Running metering tests."
+mtn-metering_test $DIRADDR $ETHERBASE 30 >/tmp/metering_test.log 2>&1
+MRC=$?
+if [ "$MRC" -ne 0 ]; then
+    echo "Metering tests failed."
+    echo "$MRC"
 fi
 
 echo "Running directory tests."

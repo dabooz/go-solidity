@@ -10,6 +10,7 @@ $(IMAGE)-$(VER).tar: Dockerfile client.sh
 	cp ../docker/fs/root/.ssh/* ./tempssh/
 	mkdir -p tempfs/src/github.com/open-horizon/go-solidity
 	rsync -avzq --exclude 'integration/' --exclude '.git/' ../../../go-solidity ./tempfs/src/github.com/open-horizon/
+	rsync -avzq --exclude '.git/' ../../../../../golang.org ./tempfs/src/
 	cp ~/dag/full-R23-0000000000000000 ./tempfs/ || :
 	docker build --no-cache -t $(IMAGE):$(VER) .
 	rm -fr tempssh
